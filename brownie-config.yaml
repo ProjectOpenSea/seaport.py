@@ -1,0 +1,8 @@
+dependencies:
+  - ProjectOpenSea/consideration@rc.0
+
+# path remapping to support OpenZepplin imports with NPM-style path
+compiler:
+  solc:
+    remappings:
+      - 'consideration=ProjectOpenSea/consideration@rc.0'
