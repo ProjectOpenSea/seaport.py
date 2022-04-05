@@ -5,7 +5,7 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.10"
+python = "3.9.12"
 eth-brownie = "1.18.1"
 
 [tool.poetry.dev-dependencies]

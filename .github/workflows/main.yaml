@@ -3,7 +3,7 @@ on:
   pull_request:
   schedule:
     # run this workflow every Monday at 1PM UTC
-    - cron: "* 13 * * 1"
+    - cron: '* 13 * * 1'
 
 name: main workflow
 
@@ -11,39 +11,38 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-
   tests:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+      - uses: actions/checkout@v1
 
-    - name: Cache Solidity Installations
-      uses: actions/cache@v1
-      with:
-        path: ~/.solcx
-        key: ${{ runner.os }}-solcx-cache
+      - name: Cache Solidity Installations
+        uses: actions/cache@v1
+        with:
+          path: ~/.solcx
+          key: ${{ runner.os }}-solcx-cache
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
 
-    - name: Install Ganache
-      run: npm install -g ganache-cli@6.8.2
+      - name: Install Ganache
+        run: npm install -g ganache-cli@6.8.2
 
-    - name: Setup Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.9.11
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.9.12
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
 
-    - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
-      
-    - name: Install library
-      run: poetry install --no-interaction
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
 
-    - name: Run Tests
-      run: brownie test -C
+      - name: Install library
+        run: poetry install --no-interaction
+
+      - name: Run Tests
+        run: brownie test -C
