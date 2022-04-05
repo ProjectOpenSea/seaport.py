@@ -11,5 +11,19 @@ def isolate(fn_isolation):
 
 
 @pytest.fixture(scope="module")
-def token(Token, accounts):
-    return Token.deploy("Test Token", "TST", 18, 1e21, {'from': accounts[0]})
+def legacy_proxy_registry(WyvernProxyRegistry, accounts):
+    legacy_proxy_registry_contract = WyvernProxyRegistry.deploy({"from": accounts[0]})
+    legacy_proxy_registry_contract.delegateProxyImplementation()
+
+    return legacy_proxy_registry_contract
+
+
+@pytest.fixture(scope="module")
+def consideration(TestConsideration, legacy_proxy_registry, accounts):
+    legacy_proxy_implementation = legacy_proxy_registry.delegateProxyImplementation()
+
+    return TestConsideration.deploy(
+        legacy_proxy_registry.address,
+        legacy_proxy_implementation,
+        {"from": accounts[0]},
+    )
