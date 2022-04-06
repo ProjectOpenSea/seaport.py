@@ -14,12 +14,6 @@ curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poet
 
 3. Run `poetry install`
 
-4. Activate your virtual environment
-
-```
-source $(poetry env info --path)/bin/activate
-```
-
 ## Testing
 
 ### Prerequisites
@@ -32,6 +26,6 @@ Using a node package manager such as `nvm` is highly recommended!
 
 To run the tests:
 
-```bash
+```
 poetry run brownie test
 ```
