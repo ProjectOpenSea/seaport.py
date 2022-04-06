@@ -24,7 +24,7 @@ jobs:
           key: ${{ runner.os }}-solcx-cache
 
       - name: Setup Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
 
       - name: Install Ganache
         run: npm install -g ganache-cli@6.8.2
