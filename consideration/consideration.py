@@ -1,6 +1,3 @@
-print("hi")
-
-
-def test(a: str) -> str:
-    if a:
-        print(a)
+class Consideration:
+    def __init__(self, config):
+        pass

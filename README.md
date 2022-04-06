@@ -12,7 +12,15 @@ A library to help interfacing with the Consideration smart contract.
 curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
 ```
 
-3. Run `poetry install`
+3. Set the poetry venv to be in the current project directory (useful for VSCode):
+
+```
+poetry config virtualenvs.in-project true
+```
+
+4. Run `poetry install`
+
+5. (Optional) If running VSCode, set the interpreter to be `.venv/bin/python`
 
 ## Testing
 

@@ -27,3 +27,16 @@ def consideration(TestConsideration, legacy_proxy_registry, accounts):
         legacy_proxy_implementation,
         {"from": accounts[0]},
     )
+
+
+@pytest.fixture(scope="module")
+def erc_20(DummyERC20, accounts):
+    return DummyERC20.deploy({"from": accounts[0]})
+
+
+def erc_721(DummyERC721, accounts):
+    return DummyERC721.deploy({"from": accounts[0]})
+
+
+def erc_1155(DummyERC1155, accounts):
+    return DummyERC1155.deploy({"from": accounts[0]})
