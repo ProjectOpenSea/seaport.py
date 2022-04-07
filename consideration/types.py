@@ -1,19 +1,19 @@
-from dataclasses import dataclass
 from typing import Optional, TypeVar
-from consideration.constants import ItemType, OrderType
-from pydantic import BaseModel
 
+from eth_typing.evm import ChecksumAddress
+from pydantic import BaseModel
+from web3 import Web3
+
+from consideration.constants import ItemType, OrderType
 from consideration.utils.proxy import ProxyStrategy
 
 
-@dataclass
-class ContractOverrides:
-    contract_address: Optional[str]
-    legacy_proxy_registry_address: Optional[str]
+class ContractOverrides(BaseModel):
+    contract_address: Optional[ChecksumAddress]
+    legacy_proxy_registry_address: Optional[ChecksumAddress]
 
 
-@dataclass
-class ConsiderationConfig:
+class ConsiderationConfig(BaseModel):
     # Used because fulfillments may be invalid if confirmations take too long. Default buffer is 30 minutes
     ascending_amount_fulfillment_buffer: int = 1800
 
@@ -25,12 +25,12 @@ class ConsiderationConfig:
     proxy_strategy: ProxyStrategy = ProxyStrategy.IF_ZERO_APPROVALS_NEEDED
 
     overrides: ContractOverrides = ContractOverrides(
-        contract_address="", legacy_proxy_registry_address=""
+        contract_address=Web3.toChecksumAddress(""),
+        legacy_proxy_registry_address=Web3.toChecksumAddress(""),
     )
 
 
-@dataclass
-class OfferItem:
+class OfferItem(BaseModel):
     itemType: ItemType
     token: str
     identifierOrCriteria: str
@@ -38,8 +38,7 @@ class OfferItem:
     endAmount: str
 
 
-@dataclass
-class ConsiderationItem:
+class ConsiderationItem(BaseModel):
     itemType: ItemType
     token: str
     identifierOrCriteria: str
@@ -51,8 +50,7 @@ class ConsiderationItem:
 Item = TypeVar("Item", OfferItem, ConsiderationItem)
 
 
-@dataclass
-class OrderParameters:
+class OrderParameters(BaseModel):
     offerer: str
     zone: str
     orderType: OrderType
@@ -64,7 +62,6 @@ class OrderParameters:
     totalOriginalConsiderationItems: int
 
 
-@dataclass
 class OrderComponents(OrderParameters):
     nonce: int
 
@@ -80,7 +77,6 @@ class Order(BaseModel):
     signature: str
 
 
-@dataclass
 class AdvancedOrder(Order):
     numerator: int
     denominator: int

@@ -1,5 +1,7 @@
-from typing import Optional
+from typing import Optional, Type
+from brownie import ZERO_ADDRESS
 from web3 import Web3
+from web3.contract import Contract
 from web3.providers.base import BaseProvider
 from brownie.network.account import Accounts
 
@@ -7,6 +9,7 @@ from consideration.types import ConsiderationConfig, Order
 
 
 class Consideration:
+    contract: Contract
     web3: Web3
     # Provides the raw interface to the contract for flexibility
     # _contract: ConsiderationContract;
@@ -32,9 +35,9 @@ class Consideration:
         self.legacy_proxy_registry_address = (
             config.overrides.legacy_proxy_registry_address or ""
         )
+        self.contract = self.web3.eth.contract(
+            config.overrides.contract_address or Web3.toChecksumAddress(ZERO_ADDRESS)
+        )
 
     def approve_orders(self, orders: list[Order]):
         pass
-
-
-consideration = Consideration(Web3.HTTPProvider("")).approve_orders([{signature: ""}])
