@@ -3,7 +3,7 @@ from web3 import Web3
 from web3.providers.base import BaseProvider
 from brownie.network.account import Accounts
 
-from consideration.types import ConsiderationConfig
+from consideration.types import ConsiderationConfig, Order
 
 
 class Consideration:
@@ -32,3 +32,9 @@ class Consideration:
         self.legacy_proxy_registry_address = (
             config.overrides.legacy_proxy_registry_address or ""
         )
+
+    def approve_orders(self, orders: list[Order]):
+        pass
+
+
+consideration = Consideration(Web3.HTTPProvider("")).approve_orders([{signature: ""}])
