@@ -1,6 +1,11 @@
 #!/usr/bin/python3
 
 import pytest
+from brownie.network.account import Accounts
+from web3 import Web3
+
+from consideration.consideration import Consideration
+from consideration.types import ConsiderationConfig, ContractOverrides
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -11,7 +16,7 @@ def isolate(fn_isolation):
 
 
 @pytest.fixture(scope="module")
-def legacy_proxy_registry(WyvernProxyRegistry, accounts):
+def legacy_proxy_registry(WyvernProxyRegistry, accounts: Accounts):
     legacy_proxy_registry_contract = WyvernProxyRegistry.deploy({"from": accounts[0]})
     legacy_proxy_registry_contract.delegateProxyImplementation()
 
@@ -19,7 +24,9 @@ def legacy_proxy_registry(WyvernProxyRegistry, accounts):
 
 
 @pytest.fixture(scope="module")
-def consideration(TestConsideration, legacy_proxy_registry, accounts):
+def consideration_contract(
+    TestConsideration, legacy_proxy_registry, accounts: Accounts
+):
     legacy_proxy_implementation = legacy_proxy_registry.delegateProxyImplementation()
 
     return TestConsideration.deploy(
@@ -27,3 +34,31 @@ def consideration(TestConsideration, legacy_proxy_registry, accounts):
         legacy_proxy_implementation,
         {"from": accounts[0]},
     )
+
+
+@pytest.fixture(scope="module")
+def consideration(consideration_contract, legacy_proxy_registry, accounts: Accounts):
+    return Consideration(
+        provider=Web3.HTTPProvider("http://127.0.0.1:8545"),
+        config=ConsiderationConfig(
+            overrides=ContractOverrides(
+                contract_address=consideration_contract.address,
+                legacy_proxy_registry_address=legacy_proxy_registry.address,
+            )
+        ),
+    )
+
+
+@pytest.fixture(scope="module")
+def erc20(DummyERC20, accounts: Accounts):
+    return DummyERC20.deploy({"from": accounts[0]})
+
+
+@pytest.fixture(scope="module")
+def erc721(DummyERC721, accounts: Accounts):
+    return DummyERC721.deploy({"from": accounts[0]})
+
+
+@pytest.fixture(scope="module")
+def erc1155(DummyERC1155, accounts: Accounts):
+    return DummyERC1155.deploy({"from": accounts[0]})

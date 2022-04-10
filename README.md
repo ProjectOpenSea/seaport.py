@@ -12,20 +12,32 @@ A library to help interfacing with the Consideration smart contract.
 curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
 ```
 
-3. Run `poetry install`
+3. Set the poetry venv to be in the current project directory (useful for VSCode):
+
+```
+poetry config virtualenvs.in-project true
+```
+
+4. Run `poetry install`
+
+5. (Optional) If running VSCode, set the interpreter to be `.venv/bin/python`
 
 ## Testing
 
 ### Prerequisites
 
-Install ganache-cli `npm i -g ganache-cli`
+1. Install yarn `npm i -g yarn`
 
 Using a node package manager such as `nvm` is highly recommended!
+
+2. Run `yarn`
+
+This is needed to run Hardhat as our RPC provider.
 
 ### Running tests
 
 To run the tests:
 
 ```
-poetry run brownie test
+poetry run brownie test --network hardhat
 ```
