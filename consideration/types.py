@@ -1,11 +1,15 @@
-from typing import Optional, TypeVar
+from typing import Callable, Optional, Type, TypeVar
 
 from eth_typing.evm import ChecksumAddress
+from hexbytes import HexBytes
 from pydantic import BaseModel
 from web3 import Web3
+from web3.types import TxParams
+from web3.constants import ADDRESS_ZERO
 
 from consideration.constants import ItemType, OrderType
 from consideration.utils.proxy import ProxyStrategy
+from consideration.utils.pydantic import BaseModelWithEnumValues
 
 
 class ContractOverrides(BaseModel):
@@ -25,37 +29,37 @@ class ConsiderationConfig(BaseModel):
     proxy_strategy: ProxyStrategy = ProxyStrategy.IF_ZERO_APPROVALS_NEEDED
 
     overrides: ContractOverrides = ContractOverrides(
-        contract_address=Web3.toChecksumAddress(""),
-        legacy_proxy_registry_address=Web3.toChecksumAddress(""),
+        contract_address=Web3.toChecksumAddress(ADDRESS_ZERO),
+        legacy_proxy_registry_address=Web3.toChecksumAddress(ADDRESS_ZERO),
     )
 
 
-class OfferItem(BaseModel):
+class OfferItem(BaseModelWithEnumValues):
     itemType: ItemType
     token: str
-    identifierOrCriteria: str
-    startAmount: str
-    endAmount: str
+    identifierOrCriteria: int
+    startAmount: int
+    endAmount: int
 
 
-class ConsiderationItem(BaseModel):
+class ConsiderationItem(BaseModelWithEnumValues):
     itemType: ItemType
     token: str
-    identifierOrCriteria: str
-    startAmount: str
-    endAmount: str
+    identifierOrCriteria: int
+    startAmount: int
+    endAmount: int
     recipient: str
 
 
 Item = TypeVar("Item", OfferItem, ConsiderationItem)
 
 
-class OrderParameters(BaseModel):
+class OrderParameters(BaseModelWithEnumValues):
     offerer: str
     zone: str
     orderType: OrderType
-    startTime: str
-    endTime: str
+    startTime: int
+    endTime: int
     salt: str
     offer: list[OfferItem]
     consideration: list[ConsiderationItem]
@@ -80,6 +84,11 @@ class Order(BaseModel):
 class AdvancedOrder(Order):
     numerator: int
     denominator: int
+
+
+class TransactionRequest(BaseModel):
+    transact: Callable[[Optional[TxParams]], HexBytes]
+    build_transaction: Callable[[Optional[TxParams]], TxParams]
 
 
 # export type BasicErc721Item = {
