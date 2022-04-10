@@ -18,16 +18,16 @@ def test_valid_order(
 ):
     offerer, zone, random_signer, *_ = accounts
 
-    start_time = 0
-    end_time = MAX_INT
+    start_time = "0"
+    end_time = str(MAX_INT)
     salt = generate_random_salt()
     offer: list[OfferItem] = [
         OfferItem(
             itemType=ItemType.ERC721,
             token=erc721.address,
-            identifierOrCriteria=0,
-            startAmount=1,
-            endAmount=1,
+            identifierOrCriteria="0",
+            startAmount="1",
+            endAmount="1",
         )
     ]
 
@@ -35,17 +35,17 @@ def test_valid_order(
         ConsiderationItem(
             itemType=ItemType.NATIVE,
             token=ADDRESS_ZERO,
-            identifierOrCriteria=0,
-            startAmount=Web3.toWei("10", "ether"),
-            endAmount=Web3.toWei("10", "ether"),
+            identifierOrCriteria="0",
+            startAmount=str(Web3.toWei("10", "ether")),
+            endAmount=str(Web3.toWei("10", "ether")),
             recipient=zone.address,
         ),
         ConsiderationItem(
             itemType=ItemType.NATIVE,
             token=ADDRESS_ZERO,
-            identifierOrCriteria=0,
-            startAmount=Web3.toWei("1", "ether"),
-            endAmount=Web3.toWei("1", "ether"),
+            identifierOrCriteria="0",
+            startAmount=str(Web3.toWei("1", "ether")),
+            endAmount=str(Web3.toWei("1", "ether")),
             recipient=zone.address,
         ),
     ]
@@ -66,9 +66,11 @@ def test_valid_order(
 
     assert nonce == 0
 
-    # signature = consideration.sign_order(
-    #     order_parameters=order_parameters, nonce=nonce, account_address=offerer.address
-    # )
+    signature = consideration.sign_order(
+        order_parameters=order_parameters, nonce=nonce, account_address=offerer.address
+    )
+
+    print("SIGNATUREEE", signature)
 
     # order = {
     #     "parameters": {

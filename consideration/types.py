@@ -37,17 +37,17 @@ class ConsiderationConfig(BaseModel):
 class OfferItem(BaseModelWithEnumValues):
     itemType: ItemType
     token: str
-    identifierOrCriteria: int
-    startAmount: int
-    endAmount: int
+    identifierOrCriteria: str
+    startAmount: str
+    endAmount: str
 
 
 class ConsiderationItem(BaseModelWithEnumValues):
     itemType: ItemType
     token: str
-    identifierOrCriteria: int
-    startAmount: int
-    endAmount: int
+    identifierOrCriteria: str
+    startAmount: str
+    endAmount: str
     recipient: str
 
 
@@ -58,8 +58,8 @@ class OrderParameters(BaseModelWithEnumValues):
     offerer: str
     zone: str
     orderType: OrderType
-    startTime: int
-    endTime: int
+    startTime: str
+    endTime: str
     salt: str
     offer: list[OfferItem]
     consideration: list[ConsiderationItem]
