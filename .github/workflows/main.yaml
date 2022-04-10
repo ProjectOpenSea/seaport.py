@@ -25,8 +25,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v1
 
-      - name: Install Ganache
-        run: npm install -g ganache-cli@6.8.2
+      - name: Install hardhat
+        run: yarn install --immutable --ignore-scripts
 
       - name: Setup Python
         uses: actions/setup-python@v1
@@ -44,4 +44,4 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Run Tests
-        run: poetry run brownie test
+        run: poetry run brownie test --network hardhat

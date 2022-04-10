@@ -26,14 +26,16 @@ poetry config virtualenvs.in-project true
 
 ### Prerequisites
 
-Install ganache-cli `npm i -g ganache-cli`
+1. Install yarn `npm i -g yarn`
 
 Using a node package manager such as `nvm` is highly recommended!
+
+2. Run `yarn`
 
 ### Running tests
 
 To run the tests:
 
 ```
-poetry run brownie test
+poetry run brownie test --network
 ```
