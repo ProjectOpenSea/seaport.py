@@ -1,13 +1,12 @@
 from brownie.network.account import Accounts
-from consideration.consideration import Consideration
+from web3 import Web3
+from web3.constants import ADDRESS_ZERO
+from web3.contract import Contract
 
+from consideration.consideration import Consideration
 from consideration.constants import MAX_INT, ItemType, OrderType
 from consideration.types import ConsiderationItem, OfferItem, OrderParameters
 from consideration.utils.order import generate_random_salt
-from web3.constants import ADDRESS_ZERO
-from web3.contract import Contract
-from web3 import Web3
-
 from consideration.utils.pydantic import to_struct
 
 

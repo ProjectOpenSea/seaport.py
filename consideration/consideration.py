@@ -1,24 +1,20 @@
 from typing import Optional, Type
+
 from brownie import ZERO_ADDRESS
+from brownie.network.account import Accounts
+from eth_account.messages import encode_structured_data
 from web3 import Web3
 from web3.contract import Contract
 from web3.providers.base import BaseProvider
-from brownie.network.account import Accounts
-from consideration.abi.Consideration import CONSIDERATION_ABI
-from consideration.constants import (
-    CONSIDERATION_CONTRACT_NAME,
-    CONSIDERATION_CONTRACT_VERSION,
-    EIP_712_ORDER_TYPE,
-)
-from eth_account.messages import encode_structured_data
-from consideration.types import (
-    ConsiderationConfig,
-    Order,
-    OrderParameters,
-    TransactionRequest,
-)
-from consideration.utils.pydantic import dict_int_to_str, parse_model_list
 from web3.types import RPCEndpoint
+
+from consideration.abi.Consideration import CONSIDERATION_ABI
+from consideration.constants import (CONSIDERATION_CONTRACT_NAME,
+                                     CONSIDERATION_CONTRACT_VERSION,
+                                     EIP_712_ORDER_TYPE)
+from consideration.types import (ConsiderationConfig, Order, OrderParameters,
+                                 TransactionRequest)
+from consideration.utils.pydantic import dict_int_to_str, parse_model_list
 
 
 class Consideration:

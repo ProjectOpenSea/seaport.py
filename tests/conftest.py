@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-from brownie.network.account import Accounts
 import pytest
+from brownie.network.account import Accounts
 from web3 import Web3
 
 from consideration.consideration import Consideration

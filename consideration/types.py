@@ -4,8 +4,8 @@ from eth_typing.evm import ChecksumAddress
 from hexbytes import HexBytes
 from pydantic import BaseModel
 from web3 import Web3
-from web3.types import TxParams
 from web3.constants import ADDRESS_ZERO
+from web3.types import TxParams
 
 from consideration.constants import ItemType, OrderType
 from consideration.utils.proxy import ProxyStrategy
