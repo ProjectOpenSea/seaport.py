@@ -32,10 +32,12 @@ Using a node package manager such as `nvm` is highly recommended!
 
 2. Run `yarn`
 
+This is needed to run Hardhat as our RPC provider.
+
 ### Running tests
 
 To run the tests:
 
 ```
-poetry run brownie test --network
+poetry run brownie test --network hardhat
 ```
