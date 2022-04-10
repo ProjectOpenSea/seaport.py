@@ -20,3 +20,7 @@ def to_struct(dict_or_list: Union[Dict, list]):
             )
         ]
     )
+
+
+def dict_int_to_str(d: Dict):
+    return {key: str(val) if isinstance(val, int) else val for key, val in d.items()}

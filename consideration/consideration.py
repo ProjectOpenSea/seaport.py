@@ -10,14 +10,15 @@ from consideration.constants import (
     CONSIDERATION_CONTRACT_VERSION,
     EIP_712_ORDER_TYPE,
 )
-
+from eth_account.messages import encode_structured_data
 from consideration.types import (
     ConsiderationConfig,
     Order,
     OrderParameters,
     TransactionRequest,
 )
-from consideration.utils.pydantic import parse_model_list
+from consideration.utils.pydantic import dict_int_to_str, parse_model_list
+from web3.types import RPCEndpoint
 
 
 class Consideration:
@@ -60,7 +61,7 @@ class Consideration:
         self,
         order_parameters: OrderParameters,
         nonce: int,
-        account_address: Optional[str],
+        account_address: str,
     ):
         domain_data = {
             "name": CONSIDERATION_CONTRACT_NAME,
@@ -69,7 +70,17 @@ class Consideration:
             "verifyingContract": self.contract.address,
         }
 
-        order_components = {**order_parameters.dict(), "nonce": nonce}
+        # We need to convert ints to str when signing due to limitations of certain RPC providers
+        order_components = {
+            **dict_int_to_str(order_parameters.dict()),
+            "nonce": nonce,
+            "offer": list(
+                map(lambda x: dict_int_to_str(x.dict()), order_parameters.offer)
+            ),
+            "consideration": list(
+                map(lambda x: dict_int_to_str(x.dict()), order_parameters.consideration)
+            ),
+        }
 
         payload = {
             "domain": domain_data,
@@ -78,11 +89,30 @@ class Consideration:
             "primaryType": "OrderComponents",
         }
 
-        signature = self.web3.eth.sign_typed_data(
-            account_address or self.web3.eth.accounts[0],
-            payload,
-        )
-        return signature
+        # Default to using signTypedData_v4. If that's not possible, fallback to signTypedData
+        try:
+            response = self.web3.provider.make_request(
+                RPCEndpoint("eth_signTypedData_v4"),
+                [
+                    account_address or self.web3.eth.accounts[0],
+                    payload,
+                ],
+            )
+        except:
+            response = self.web3.provider.make_request(
+                RPCEndpoint("eth_signTypedData"),
+                [
+                    account_address or self.web3.eth.accounts[0],
+                    payload,
+                ],
+            )
+
+        if "result" not in response and "error" in response:
+            raise ValueError(
+                f"There was a problem generating the signature for the order: {response['error']}"
+            )
+
+        return response["result"]
 
     def approve_orders(self, orders: list[Order]):
         validate = self.contract.functions.validate(parse_model_list(orders))
