@@ -1,7 +1,4 @@
 {
-  "engines": {
-    "node": "16.11.0"
-  },
   "devDependencies": {
     "hardhat": "2.9.3"
   }
