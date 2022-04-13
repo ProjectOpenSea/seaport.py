@@ -4,9 +4,9 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 1,
-      forking: {
-        url: 'https://eth-mainnet.alchemyapi.io/v2/VFV539yhBGYpCjqcP5DHwYZ5IXd9KIl1',
-      },
+      // forking: {
+      //   url: 'https://eth-mainnet.alchemyapi.io/v2/<key>',
+      // },
       hardfork: 'london',
       // base fee of 0 allows use of 0 gas price when testing
       initialBaseFeePerGas: 0,
