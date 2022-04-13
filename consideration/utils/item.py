@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, Optional
+from typing import Dict, Optional, Sequence
 
 from consideration.constants import ItemType
 from consideration.types import InputCriteria, Item, Order
@@ -80,15 +80,19 @@ def get_present_item_amount(
     ) // duration
 
 
+TokenAndIdentifierAmounts = dict[str, dict[int, int]]
+
+
 def get_summed_token_and_identifier_amounts(
-    items: list[Item],
+    *,
+    items: Sequence[Item],
     criterias: list[InputCriteria],
     time_based_item_params: Optional[TimeBasedItemParams],
-):
+) -> TokenAndIdentifierAmounts:
     item_index_to_criteria = get_item_index_to_criteria_map(
         items=items, criterias=criterias
     )
-    token_and_identifier_to_summed_amount: Dict[str, Dict[int, int]] = {}
+    token_and_identifier_to_summed_amount: TokenAndIdentifierAmounts = {}
 
     for index, item in enumerate(items):
         identifier_or_criteria = (

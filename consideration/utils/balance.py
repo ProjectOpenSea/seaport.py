@@ -9,7 +9,9 @@ from consideration.types import InputCriteria, Item
 from consideration.utils.item import is_erc1155_item, is_erc20_item, is_erc721_item
 
 
-def balance_of(owner: str, item: Item, criteria: Optional[InputCriteria], web3: Web3):
+def balance_of(
+    owner: str, item: Item, criteria: Optional[InputCriteria], web3: Web3
+) -> int:
     if is_erc721_item(item.itemType):
         contract = web3.eth.contract(
             address=Web3.toChecksumAddress(item.token), abi=ERC721_ABI
@@ -20,7 +22,7 @@ def balance_of(owner: str, item: Item, criteria: Optional[InputCriteria], web3: 
                 owner_of: str = contract.functions.ownerOf(criteria.identifier).call()
                 return 1 if owner_of.lower() == owner.lower() else 0
 
-            return contract.functions.balanceOf(owner)
+            return contract.functions.balanceOf(owner).call()
 
         owner_of: str = contract.functions.ownerOf(item.identifierOrCriteria).call()
         return 1 if owner_of.lower() == owner.lower() else 0
@@ -35,14 +37,14 @@ def balance_of(owner: str, item: Item, criteria: Optional[InputCriteria], web3: 
                 # identifiers are provided, so just assume the offerer has sufficient balance
                 return max(item.startAmount, item.endAmount)
 
-            return contract.functions.balanceOf(owner, criteria.identifier)
+            return contract.functions.balanceOf(owner, criteria.identifier).call()
 
-        return contract.functions.balanceOf(owner, item.identifierOrCriteria)
+        return contract.functions.balanceOf(owner, item.identifierOrCriteria).call()
 
     if is_erc20_item(item.itemType):
         contract = web3.eth.contract(
             address=Web3.toChecksumAddress(item.token), abi=ERC20_ABI
         )
-        return contract.functions.balanceOf(owner)
+        return contract.functions.balanceOf(owner).call()
 
     return web3.eth.get_balance(owner)

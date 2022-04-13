@@ -4,6 +4,7 @@ from enum import Enum, auto
 from web3 import Web3
 
 from consideration.abi.ProxyRegistryInterface import PROXY_REGISTRY_INTERFACE_ABI
+from consideration.utils.balance_and_approval_check import InsufficientApprovals
 
 
 class ProxyStrategy(Enum):
