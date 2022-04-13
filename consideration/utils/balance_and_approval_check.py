@@ -1,9 +1,11 @@
 from copy import deepcopy
-from typing import Literal, Optional, Type, Union
-from brownie import ZERO_ADDRESS, Contract
+from typing import Literal, Optional, Sequence, Type, Union
 from jsonschema import ValidationError
 from pydantic import BaseModel
 from web3 import Web3
+from web3.contract import Contract
+from web3.constants import ADDRESS_ZERO
+
 from consideration.constants import MAX_INT, ItemType, OrderType, ProxyStrategy
 from consideration.types import (
     BalanceAndApproval,
@@ -47,8 +49,9 @@ def find_balance_and_approval(
 
 
 def get_balances_and_approvals(
+    *,
     owner: str,
-    items: list[Item],
+    items: Sequence[Item],
     criterias: list[InputCriteria],
     proxy: str,
     consideration_contract: Contract,
@@ -58,7 +61,8 @@ def get_balances_and_approvals(
         items=items, criterias=criterias
     )
 
-    def map_item_to_balances_and_approval(index: int, item: Item):
+    def map_item_to_balances_and_approval(index_and_item: tuple[int, Item]):
+        index, item = index_and_item
         owner_approved_amount = 0
         proxy_approved_amount = 0
 
@@ -71,7 +75,7 @@ def get_balances_and_approvals(
                 web3=web3,
             )
 
-            if proxy != ZERO_ADDRESS:
+            if proxy != ADDRESS_ZERO:
                 proxy_approved_amount = approved_item_amount(
                     owner=owner,
                     item=item,
@@ -110,6 +114,8 @@ def get_balances_and_approvals(
             proxy_approved_amount=proxy_approved_amount,
             item_type=item.itemType,
         )
+
+    return list(map(map_item_to_balances_and_approval, enumerate(items)))
 
 
 class InsufficientBalanceAndApprovalAmounts(BaseModel):

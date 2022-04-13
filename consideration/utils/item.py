@@ -87,7 +87,7 @@ def get_summed_token_and_identifier_amounts(
     *,
     items: Sequence[Item],
     criterias: list[InputCriteria],
-    time_based_item_params: Optional[TimeBasedItemParams],
+    time_based_item_params: Optional[TimeBasedItemParams] = None,
 ) -> TokenAndIdentifierAmounts:
     item_index_to_criteria = get_item_index_to_criteria_map(
         items=items, criterias=criterias

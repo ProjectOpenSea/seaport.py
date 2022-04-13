@@ -1,38 +1,30 @@
-from collections import namedtuple
-from functools import reduce
 from itertools import chain
 from secrets import token_hex
+from typing import Optional, Union, cast
 
-from brownie import ZERO_ADDRESS, Contract
-from jsonschema import ValidationError
+from web3.contract import Contract
 from consideration.constants import (
     ONE_HUNDRED_PERCENT_BP,
     ItemType,
     OrderType,
     ProxyStrategy,
 )
-from typing import Optional, Sequence, TypedDict, cast, Union
 from consideration.types import (
     BalancesAndApprovals,
-    BasicErc1155Item,
     BasicErc721Item,
+    BasicErc1155Item,
     ConsiderationItem,
     CreateInputItem,
     CurrencyItem,
-    Erc1155Item,
-    Erc1155ItemWithCriteria,
-    Erc721Item,
     Erc721ItemWithCriteria,
+    Erc1155ItemWithCriteria,
     Fee,
     InputCriteria,
-    InsufficientApprovals,
     Item,
     OfferItem,
     Order,
     OrderParameters,
 )
-from web3.constants import ADDRESS_ZERO
-
 from consideration.utils.balance_and_approval_check import (
     validate_offer_balances_and_approvals,
 )
@@ -41,6 +33,8 @@ from consideration.utils.item import (
     get_maximum_size_for_order,
     is_currency_item,
 )
+from jsonschema import ValidationError
+from web3.constants import ADDRESS_ZERO
 
 
 def get_order_type_from_options(
@@ -75,10 +69,10 @@ def multiply_basis_points(amount: int, basis_points: int) -> int:
 
 
 def fee_to_consideration_item(
-    fee: Fee, token: str, base_amount: int, base_end_amount: int
+    *, fee: Fee, token: str, base_amount: int, base_end_amount: int
 ) -> ConsiderationItem:
     return ConsiderationItem(
-        itemType=ItemType.NATIVE if token == ZERO_ADDRESS else ItemType.ERC20,
+        itemType=ItemType.NATIVE if token == ADDRESS_ZERO else ItemType.ERC20,
         token=token,
         identifierOrCriteria=0,
         startAmount=multiply_basis_points(base_amount, fee["basis_points"]),
@@ -87,7 +81,7 @@ def fee_to_consideration_item(
     )
 
 
-def deduct_fees(items: Sequence[Item], fees: list[Fee] = []):
+def deduct_fees(consideration: list[ConsiderationItem], fees: list[Fee] = []):
     total_basis_points = 0
 
     for fee in fees:
@@ -107,7 +101,7 @@ def deduct_fees(items: Sequence[Item], fees: list[Fee] = []):
                     else item.endAmount,
                 }
             ),
-            items,
+            consideration,
         )
     )
 
@@ -185,7 +179,7 @@ def validate_order_parameters(
     consideration_contract: Contract,
     proxy: str,
     proxy_strategy: ProxyStrategy,
-    time_based_item_params: Optional[TimeBasedItemParams]
+    time_based_item_params: Optional[TimeBasedItemParams] = None
 ):
     if not are_all_currencies_same(
         offer=order_parameters.offer, consideration=order_parameters.consideration

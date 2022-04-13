@@ -222,6 +222,15 @@ class Transaction(BaseModel):
     build_transaction: Callable[[Optional[TxParams]], TxParams]
 
 
+class CreatedOrder(Order):
+    nonce: int
+
+
+class CreateOrderAction(BaseModel):
+    type = "create"
+    create_order: Callable[[], CreatedOrder]
+
+
 class ApprovalAction(BaseModel):
     type = "approval"
     token: str
@@ -231,36 +240,19 @@ class ApprovalAction(BaseModel):
     transaction: Transaction
 
 
-# export type ExchangeAction = {
-#   type: "exchange";
-#   transactionRequest: TransactionRequest;
-# };
+class ExchangeAction(BaseModel):
+    type = "exchange"
+    transaction: Transaction
 
-# export type CreateOrderAction = {
-#   type: "create";
-#   createOrder: () => Promise<CreatedOrder>;
-# };
 
-# export type TransactionAction = ApprovalAction | ExchangeAction;
+CreateOrderActions = list[Union[ApprovalAction, CreateOrderAction]]
+OrderExchangeActions = list[Union[ApprovalAction, ExchangeAction]]
 
-# export type CreateOrderActions = readonly [
-#   ...ApprovalAction[],
-#   CreateOrderAction
-# ];
 
-# export type OrderExchangeActions = readonly [
-#   ...ApprovalAction[],
-#   ExchangeAction
-# ];
+class OrderUseCase(BaseModel):
+    actions: Union[CreateOrderActions, OrderExchangeActions]
+    execute_all_actions: Callable[[], Union[CreatedOrder, HexBytes]]
 
-# export type OrderUseCase<T extends CreateOrderAction | ExchangeAction> = {
-#   actions: T extends CreateOrderAction
-#     ? CreateOrderActions
-#     : OrderExchangeActions;
-#   executeAllActions: () => Promise<
-#     T extends CreateOrderAction ? CreatedOrder : ContractTransaction
-#   >;
-# };
 
 # export type FulfillmentComponent = {
 #   orderIndex: number;
