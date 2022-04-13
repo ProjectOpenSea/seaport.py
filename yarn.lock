@@ -1074,7 +1074,7 @@ growl@1.10.5:
   resolved "https://registry.yarnpkg.com/growl/-/growl-1.10.5.tgz#f2735dc2283674fa67478b10181059355c369e5e"
   integrity sha512-qBr4OuELkhPenW6goKVXiv47US3clb3/IbuWF9KNKEijAy9oeHxU9IgzjvJhHkUzhaj7rOUD7+YGWqUjLp5oSA==
 
-hardhat@^2.9.3:
+hardhat@2.9.3:
   version "2.9.3"
   resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.9.3.tgz#4759dc3c468c7d15f34334ca1be7d59b04e47b1e"
   integrity sha512-7Vw99RbYbMZ15UzegOR/nqIYIqddZXvLwJGaX5sX4G5bydILnbjmDU6g3jMKJSiArEixS3vHAEaOs5CW1JQ3hg==

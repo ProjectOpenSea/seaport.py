@@ -1,4 +1,5 @@
-from typing import Callable, Optional, Type, TypeVar
+from typing import Callable, Literal, Optional, Type, TypeVar, TypedDict, Union
+from typing_extensions import NotRequired
 
 from eth_typing.evm import ChecksumAddress
 from hexbytes import HexBytes
@@ -51,7 +52,7 @@ class ConsiderationItem(BaseModelWithEnumValues):
     recipient: str
 
 
-Item = TypeVar("Item", OfferItem, ConsiderationItem)
+Item = Union[OfferItem, ConsiderationItem]
 
 
 class OrderParameters(BaseModelWithEnumValues):
@@ -70,12 +71,6 @@ class OrderComponents(OrderParameters):
     nonce: int
 
 
-# @dataclass
-# class Order:
-#     parameters: OrderParameters
-#     signature: str
-
-
 class Order(BaseModel):
     parameters: OrderParameters
     signature: str
@@ -86,104 +81,121 @@ class AdvancedOrder(Order):
     denominator: int
 
 
-class TransactionRequest(BaseModel):
-    transact: Callable[[Optional[TxParams]], HexBytes]
-    build_transaction: Callable[[Optional[TxParams]], TxParams]
+class CurrencyItem(TypedDict):
+    token: NotRequired[str]
+    amount: int
+    end_amount: NotRequired[int]
 
 
-# export type BasicErc721Item = {
-#   itemType: ItemType.ERC721;
-#   token: string;
-#   identifier: string;
-# };
+class ConsiderationCurrencyItem(CurrencyItem):
+    recipient: NotRequired[str]
 
-# export type Erc721ItemWithCriteria = {
-#   itemType: ItemType.ERC721;
-#   token: string;
-#   identifiers: string[];
-#   // Used for criteria based items i.e. offering to buy 5 NFTs for a collection
-#   amount?: string;
-#   endAmount?: string;
-# };
 
-# type Erc721Item = BasicErc721Item | Erc721ItemWithCriteria;
+class BasicErc721Item(TypedDict):
+    item_type: Literal[ItemType.ERC721]
+    token: str
+    identifier: int
 
-# export type BasicErc1155Item = {
-#   itemType: ItemType.ERC1155;
-#   token: string;
-#   identifier: string;
-#   amount: string;
-#   endAmount?: string;
-# };
 
-# export type Erc1155ItemWithCriteria = {
-#   itemType: ItemType.ERC1155;
-#   token: string;
-#   identifiers: string[];
-#   amount: string;
-#   endAmount?: string;
-# };
+class Erc721ItemWithCriteria(TypedDict):
+    item_type: Literal[ItemType.ERC721]
+    token: str
+    identifiers: list[int]
+    # Used for criteria based items i.e. offering to buy 5 NFTs for a collection
+    amount: NotRequired[int]
+    endAmount: NotRequired[int]
 
-# type Erc1155Item = BasicErc1155Item | Erc1155ItemWithCriteria;
 
-# export type CurrencyItem = {
-#   token?: string;
-#   amount: string;
-#   endAmount?: string;
-# };
+Erc721Item = Union[BasicErc721Item, Erc721ItemWithCriteria]
 
-# export type CreateInputItem = Erc721Item | Erc1155Item | CurrencyItem;
 
-# export type ConsiderationInputItem = CreateInputItem & { recipient?: string };
+class BasicConsiderationErc721Item(BasicErc721Item):
+    recipient: NotRequired[str]
 
-# export type Fee = {
-#   recipient: string;
-#   basisPoints: number;
-# };
 
-# export type CreateOrderInput = {
-#   zone?: string;
-#   startTime?: string;
-#   endTime?: string;
-#   offer: readonly CreateInputItem[];
-#   consideration: readonly ConsiderationInputItem[];
-#   nonce?: number;
-#   fees?: readonly Fee[];
-#   allowPartialFills?: boolean;
-#   restrictedByZone?: boolean;
-#   useProxy?: boolean;
-#   salt?: string;
-# };
+class BasicConsiderationErc721ItemWithCriteria(Erc721ItemWithCriteria):
+    recipient: NotRequired[str]
 
-# export type InputCriteria = {
-#   identifier: string;
-#   validIdentifiers: string[];
-# };
 
-# export type OrderStatus = {
-#   isValidated: boolean;
-#   isCancelled: boolean;
-#   totalFilled: BigNumber;
-#   totalSize: BigNumber;
-# };
+ConsiderationErc721Item = Union[
+    BasicConsiderationErc721Item, BasicConsiderationErc721ItemWithCriteria
+]
+
+
+class BasicErc1155Item(TypedDict):
+    item_type: Literal[ItemType.ERC1155]
+    token: str
+    identifier: int
+    amount: int
+    end_amount: NotRequired[int]
+
+
+class Erc1155ItemWithCriteria(TypedDict):
+    item_type: Literal[ItemType.ERC1155]
+    token: str
+    identifiers: list[int]
+    amount: int
+    end_amount: NotRequired[int]
+
+
+Erc1155Item = Union[BasicErc1155Item, Erc1155ItemWithCriteria]
+
+
+class BasicConsiderationErc1155Item(BasicErc1155Item):
+    recipient: NotRequired[str]
+
+
+class BasicConsiderationErc1155ItemWithCriteria(Erc1155ItemWithCriteria):
+    recipient: NotRequired[str]
+
+
+ConsiderationErc1155Item = Union[
+    BasicConsiderationErc1155Item, BasicConsiderationErc1155ItemWithCriteria
+]
+
+
+CreateInputItem = Union[Erc721Item, Erc1155Item, CurrencyItem]
+
+ConsiderationInputItem = Union[
+    ConsiderationErc721Item, ConsiderationErc1155Item, ConsiderationCurrencyItem
+]
+
+
+class Fee(TypedDict):
+    recipient: str
+    basis_points: int
+
+
+class InputCriteria(BaseModel):
+    identifier: int
+    valid_identifiers: list[int]
+
+
+class OrderStatus(BaseModel):
+    is_validated: bool
+    is_cancelled: bool
+    total_filled: int
+    total_size: int
+
 
 # export type CreatedOrder = Order & {
 #   nonce: number;
 # };
 
-# type TransactionRequest = {
-#   send: () => Promise<ContractTransaction>;
-#   populatedTransaction: Promise<PopulatedTransaction>;
-# };
 
-# export type ApprovalAction = {
-#   type: "approval";
-#   token: string;
-#   identifierOrCriteria: string;
-#   itemType: ItemType;
-#   operator: string;
-#   transactionRequest: TransactionRequest;
-# };
+class Transaction(BaseModel):
+    transact: Callable[[Optional[TxParams]], HexBytes]
+    build_transaction: Callable[[Optional[TxParams]], TxParams]
+
+
+class ApprovalAction(BaseModel):
+    type = "approval"
+    token: str
+    identifier_or_criteria: int
+    item_type: ItemType
+    operator: str
+    transaction: Transaction
+
 
 # export type ExchangeAction = {
 #   type: "exchange";

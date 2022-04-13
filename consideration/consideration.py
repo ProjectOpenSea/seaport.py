@@ -1,35 +1,42 @@
+from time import time
 from typing import Optional, Type
 
-from brownie import ZERO_ADDRESS
-from brownie.network.account import Accounts
-from eth_account.messages import encode_structured_data
 from web3 import Web3
 from web3.contract import Contract
 from web3.providers.base import BaseProvider
 from web3.types import RPCEndpoint
+from web3.constants import ADDRESS_ZERO
+from consideration.utils.order import generate_random_salt, map_input_item_to_offer_item
 
 from consideration.abi.Consideration import CONSIDERATION_ABI
-from consideration.constants import (CONSIDERATION_CONTRACT_NAME,
-                                     CONSIDERATION_CONTRACT_VERSION,
-                                     EIP_712_ORDER_TYPE)
-from consideration.types import (ConsiderationConfig, Order, OrderParameters,
-                                 TransactionRequest)
+from consideration.constants import (
+    CONSIDERATION_CONTRACT_NAME,
+    CONSIDERATION_CONTRACT_VERSION,
+    EIP_712_ORDER_TYPE,
+    MAX_INT,
+)
+from consideration.types import (
+    ConsiderationConfig,
+    ConsiderationInputItem,
+    ConsiderationItem,
+    CreateInputItem,
+    Fee,
+    Order,
+    OrderParameters,
+    TransactionRequest,
+)
+from consideration.utils.proxy import get_proxy
 from consideration.utils.pydantic import dict_int_to_str, parse_model_list
 
 
 class Consideration:
     contract: Contract
     web3: Web3
-    # Provides the raw interface to the contract for flexibility
-    # _contract: ConsiderationContract;
-
-    # private provider: providers.JsonRpcProvider;
 
     # Use the multicall provider for reads for batching and performance optimisations
     # NOTE: Do NOT await between sequential requests if you're intending to batch
     # instead, use Promise.all() and map to fetch data in parallel
     # https://www.npmjs.com/package/@0xsequence/multicall
-    # private multicallProvider: multicallProviders.MulticallProvider;
 
     config: ConsiderationConfig
     legacy_proxy_registry_address: str
@@ -42,13 +49,47 @@ class Consideration:
         self.web3 = Web3(provider=provider)
         self.config = config
         self.legacy_proxy_registry_address = (
-            config.overrides.legacy_proxy_registry_address or ""
+            config.overrides.legacy_proxy_registry_address or ADDRESS_ZERO
         )
         self.contract = self.web3.eth.contract(
             address=config.overrides.contract_address
-            or Web3.toChecksumAddress(ZERO_ADDRESS),
+            or Web3.toChecksumAddress(ADDRESS_ZERO),
             abi=CONSIDERATION_ABI,
         )
+
+    def create_order(
+        self,
+        offer: list[CreateInputItem],
+        consideration: list[ConsiderationInputItem],
+        nonce: Optional[int],
+        fees: list[Fee],
+        account_address: Optional[str],
+        allow_partial_fills=False,
+        restricted_by_zone=False,
+        salt=generate_random_salt(),
+        zone: str = ADDRESS_ZERO,
+        start_time: int = int(time()),
+        end_time: int = MAX_INT,
+    ):
+        offerer = account_address or self.web3.eth.accounts[0]
+        offer_items = list(map(map_input_item_to_offer_item, offer))
+        consideration_items = list(
+            map(
+                lambda c: ConsiderationItem(
+                    **map_input_item_to_offer_item(c).dict(),
+                    recipient=c.get("recipient", offerer),
+                ),
+                consideration,
+            )
+        )
+
+        proxy = get_proxy(
+            address=offerer,
+            legacy_proxy_registry_address=self.legacy_proxy_registry_address,
+            web3=self.web3,
+        )
+
+        nonce = self.get_nonce(offerer=offerer, zone=zone)
 
     def get_nonce(self, offerer: str, zone: str) -> int:
         return self.contract.functions.getNonce(offerer, zone).call()
