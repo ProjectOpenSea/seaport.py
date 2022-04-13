@@ -23,7 +23,7 @@ from consideration.types import (
     Fee,
     Order,
     OrderParameters,
-    TransactionRequest,
+    Transaction,
 )
 from consideration.utils.proxy import get_proxy
 from consideration.utils.pydantic import dict_int_to_str, parse_model_list
@@ -127,15 +127,14 @@ class Consideration:
         }
 
         # Default to using signTypedData_v4. If that's not possible, fallback to signTypedData
-        try:
-            response = self.web3.provider.make_request(
-                RPCEndpoint("eth_signTypedData_v4"),
-                [
-                    account_address or self.web3.eth.accounts[0],
-                    payload,
-                ],
-            )
-        except:
+        response = self.web3.provider.make_request(
+            RPCEndpoint("eth_signTypedData_v4"),
+            [
+                account_address or self.web3.eth.accounts[0],
+                payload,
+            ],
+        )
+        if "error" in response:
             response = self.web3.provider.make_request(
                 RPCEndpoint("eth_signTypedData"),
                 [
@@ -154,7 +153,7 @@ class Consideration:
     def approve_orders(self, orders: list[Order]):
         validate = self.contract.functions.validate(parse_model_list(orders))
 
-        return TransactionRequest(
+        return Transaction(
             transact=validate.transact,
             build_transaction=validate.buildTransaction,
         )

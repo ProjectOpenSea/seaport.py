@@ -4,17 +4,22 @@ from brownie import ZERO_ADDRESS, Contract
 from jsonschema import ValidationError
 from pydantic import BaseModel
 from web3 import Web3
-from consideration.constants import MAX_INT, ItemType, OrderType
+from consideration.constants import MAX_INT, ItemType, OrderType, ProxyStrategy
 from consideration.types import (
+    BalanceAndApproval,
+    BalancesAndApprovals,
     ConsiderationItem,
     InputCriteria,
+    InsufficientApproval,
+    InsufficientApprovals,
+    InsufficientBalance,
+    InsufficientBalances,
     Item,
     OfferItem,
     OrderParameters,
 )
 from consideration.utils.approval import approved_item_amount
 from consideration.utils.balance import balance_of
-from consideration.utils.criteria import get_item_index_to_criteria_map
 from consideration.utils.item import (
     TimeBasedItemParams,
     TokenAndIdentifierAmounts,
@@ -22,44 +27,8 @@ from consideration.utils.item import (
     is_erc1155_item,
     is_erc20_item,
     is_erc721_item,
+    get_item_index_to_criteria_map,
 )
-from consideration.utils.order import use_offerer_proxy, use_proxy_from_approvals
-from consideration.utils.proxy import ProxyStrategy
-
-
-class BalanceAndApproval(BaseModel):
-    token: str
-    identifier_or_criteria: int
-    balance: int
-    owner_approved_amount: int
-    proxy_approved_amount: int
-    item_type: ItemType
-
-
-BalancesAndApprovals = list[BalanceAndApproval]
-
-
-class InsufficientBalance(BaseModel):
-    token: str
-    identifier_or_criteria: int
-    required_amount: int
-    amount_have: int
-    item_type: ItemType
-
-
-InsufficientBalances = list[InsufficientBalance]
-
-
-class InsufficientApproval(BaseModel):
-    token: str
-    identifier_or_criteria: int
-    approved_amount: int
-    required_approved_amount: int
-    operator: str
-    item_type: ItemType
-
-
-InsufficientApprovals = list[InsufficientApproval]
 
 
 def find_balance_and_approval(
@@ -491,3 +460,25 @@ def validate_standard_fulfill_balances_and_approvals(
         )
 
     return insufficient_balance_and_approval_amounts
+
+
+def use_offerer_proxy(order_type: OrderType):
+    return order_type in [
+        OrderType.FULL_OPEN_VIA_PROXY,
+        OrderType.PARTIAL_OPEN_VIA_PROXY,
+        OrderType.FULL_RESTRICTED_VIA_PROXY,
+        OrderType.PARTIAL_RESTRICTED_VIA_PROXY,
+    ]
+
+
+def use_proxy_from_approvals(
+    insufficient_owner_approvals: InsufficientApprovals,
+    insufficient_proxy_approvals: InsufficientApprovals,
+    proxy_strategy: ProxyStrategy,
+):
+    if proxy_strategy == ProxyStrategy.IF_ZERO_APPROVALS_NEEDED:
+        return (
+            len(insufficient_proxy_approvals) < len(insufficient_owner_approvals)
+            and len(insufficient_owner_approvals) != 0
+        )
+    return proxy_strategy == ProxyStrategy.ALWAYS

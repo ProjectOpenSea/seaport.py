@@ -8,8 +8,7 @@ from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.types import TxParams
 
-from consideration.constants import ItemType, OrderType
-from consideration.utils.proxy import ProxyStrategy
+from consideration.constants import ItemType, OrderType, ProxyStrategy
 from consideration.utils.pydantic import BaseModelWithEnumValues
 
 
@@ -176,6 +175,41 @@ class OrderStatus(BaseModel):
     is_cancelled: bool
     total_filled: int
     total_size: int
+
+
+class BalanceAndApproval(BaseModel):
+    token: str
+    identifier_or_criteria: int
+    balance: int
+    owner_approved_amount: int
+    proxy_approved_amount: int
+    item_type: ItemType
+
+
+BalancesAndApprovals = list[BalanceAndApproval]
+
+
+class InsufficientBalance(BaseModel):
+    token: str
+    identifier_or_criteria: int
+    required_amount: int
+    amount_have: int
+    item_type: ItemType
+
+
+InsufficientBalances = list[InsufficientBalance]
+
+
+class InsufficientApproval(BaseModel):
+    token: str
+    identifier_or_criteria: int
+    approved_amount: int
+    required_approved_amount: int
+    operator: str
+    item_type: ItemType
+
+
+InsufficientApprovals = list[InsufficientApproval]
 
 
 # export type CreatedOrder = Order & {

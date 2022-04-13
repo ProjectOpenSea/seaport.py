@@ -1,9 +1,9 @@
+from collections import deque
 from itertools import chain
 from typing import Dict, Optional, Sequence
 
 from consideration.constants import ItemType
 from consideration.types import InputCriteria, Item, Order
-from consideration.utils.criteria import get_item_index_to_criteria_map
 from consideration.utils.gcd import find_gcd
 
 from pydantic import BaseModel
@@ -138,3 +138,15 @@ def get_maximum_size_for_order(order: Order):
     )
 
     return find_gcd(amounts)
+
+
+def get_item_index_to_criteria_map(
+    items: Sequence[Item], criterias: list[InputCriteria]
+):
+    criterias_copy = deque(criterias)
+    criteria_map: dict[int, InputCriteria] = {}
+    for index, item in enumerate(items):
+        if is_criteria_item(item.itemType):
+            criteria_map[index] = criterias_copy.popleft()
+
+    return criteria_map

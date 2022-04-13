@@ -7,12 +7,6 @@ from consideration.abi.ProxyRegistryInterface import PROXY_REGISTRY_INTERFACE_AB
 from consideration.utils.balance_and_approval_check import InsufficientApprovals
 
 
-class ProxyStrategy(Enum):
-    IF_ZERO_APPROVALS_NEEDED = auto()
-    NEVER = auto()
-    ALWAYS = auto()
-
-
 def get_proxy(
     address: str,
     legacy_proxy_registry_address: str,

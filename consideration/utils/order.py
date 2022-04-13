@@ -5,9 +5,15 @@ from secrets import token_hex
 
 from brownie import ZERO_ADDRESS, Contract
 from jsonschema import ValidationError
-from consideration.constants import ONE_HUNDRED_PERCENT_BP, ItemType, OrderType
+from consideration.constants import (
+    ONE_HUNDRED_PERCENT_BP,
+    ItemType,
+    OrderType,
+    ProxyStrategy,
+)
 from typing import Optional, Sequence, TypedDict, cast, Union
 from consideration.types import (
+    BalancesAndApprovals,
     BasicErc1155Item,
     BasicErc721Item,
     ConsiderationItem,
@@ -19,6 +25,7 @@ from consideration.types import (
     Erc721ItemWithCriteria,
     Fee,
     InputCriteria,
+    InsufficientApprovals,
     Item,
     OfferItem,
     Order,
@@ -27,8 +34,6 @@ from consideration.types import (
 from web3.constants import ADDRESS_ZERO
 
 from consideration.utils.balance_and_approval_check import (
-    BalancesAndApprovals,
-    InsufficientApprovals,
     validate_offer_balances_and_approvals,
 )
 from consideration.utils.item import (
@@ -36,7 +41,6 @@ from consideration.utils.item import (
     get_maximum_size_for_order,
     is_currency_item,
 )
-from consideration.utils.proxy import ProxyStrategy
 
 
 def get_order_type_from_options(
@@ -211,28 +215,6 @@ def total_items_amount(items: list[Item]):
         end_amount += item.endAmount
 
     return (start_amount, end_amount)
-
-
-def use_offerer_proxy(order_type: OrderType):
-    return order_type in [
-        OrderType.FULL_OPEN_VIA_PROXY,
-        OrderType.PARTIAL_OPEN_VIA_PROXY,
-        OrderType.FULL_RESTRICTED_VIA_PROXY,
-        OrderType.PARTIAL_RESTRICTED_VIA_PROXY,
-    ]
-
-
-def use_proxy_from_approvals(
-    insufficient_owner_approvals: InsufficientApprovals,
-    insufficient_proxy_approvals: InsufficientApprovals,
-    proxy_strategy: ProxyStrategy,
-):
-    if proxy_strategy == ProxyStrategy.IF_ZERO_APPROVALS_NEEDED:
-        return (
-            len(insufficient_proxy_approvals) < len(insufficient_owner_approvals)
-            and len(insufficient_owner_approvals) != 0
-        )
-    return proxy_strategy == ProxyStrategy.ALWAYS
 
 
 # Maps order offer and consideration item amounts based on the order's filled status
