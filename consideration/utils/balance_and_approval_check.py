@@ -1,5 +1,4 @@
 from typing import Literal, Optional, Sequence, Union
-from jsonschema import ValidationError
 from pydantic import BaseModel
 from web3 import Web3
 from web3.contract import Contract
@@ -358,9 +357,10 @@ def validate_offer_balances_and_approvals(
         throw_on_insufficient_balances
         and insufficient_balance_and_approval_amounts.insufficient_balances
     ):
-        raise ValidationError(
+        raise ValueError(
             "The offerer does not have the amount needed to create or fulfill."
         )
+
     approvals_to_check = (
         insufficient_balance_and_approval_amounts.insufficient_proxy_approvals
         if use_offerer_proxy(order_type)
@@ -368,7 +368,7 @@ def validate_offer_balances_and_approvals(
     )
 
     if throw_on_insufficient_approvals and len(approvals_to_check) > 0:
-        raise ValidationError("The offerer does not have the sufficient approvals.")
+        raise ValueError("The offerer does not have the sufficient approvals.")
 
     return approvals_to_check
 
@@ -434,9 +434,7 @@ def validate_basic_fulfill_balances_and_approvals(
     )
 
     if insufficient_balance_and_approval_amounts.insufficient_balances:
-        raise ValidationError(
-            "The fulfiller does not have the balances needed to fulfill"
-        )
+        raise ValueError("The fulfiller does not have the balances needed to fulfill")
 
     return insufficient_balance_and_approval_amounts
 
@@ -529,19 +527,17 @@ def validate_standard_fulfill_balances_and_approvals(
     )
 
     if insufficient_balance_and_approval_amounts.insufficient_balances:
-        raise ValidationError(
-            "The fulfiller does not have the balances needed to fulfill."
-        )
+        raise ValueError("The fulfiller does not have the balances needed to fulfill.")
 
     return insufficient_balance_and_approval_amounts
 
 
 def use_offerer_proxy(order_type: OrderType):
     return order_type in [
-        OrderType.FULL_OPEN_VIA_PROXY,
-        OrderType.PARTIAL_OPEN_VIA_PROXY,
-        OrderType.FULL_RESTRICTED_VIA_PROXY,
-        OrderType.PARTIAL_RESTRICTED_VIA_PROXY,
+        OrderType.FULL_OPEN_VIA_PROXY.value,
+        OrderType.PARTIAL_OPEN_VIA_PROXY.value,
+        OrderType.FULL_RESTRICTED_VIA_PROXY.value,
+        OrderType.PARTIAL_RESTRICTED_VIA_PROXY.value,
     ]
 
 

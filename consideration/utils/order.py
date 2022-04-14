@@ -33,7 +33,6 @@ from consideration.utils.item import (
     get_maximum_size_for_order,
     is_currency_item,
 )
-from jsonschema import ValidationError
 from web3.constants import ADDRESS_ZERO
 
 
@@ -180,7 +179,7 @@ def validate_order_parameters(
     if not are_all_currencies_same(
         offer=order_parameters.offer, consideration=order_parameters.consideration
     ):
-        raise ValidationError("All currency tokens in the order must be the same token")
+        raise ValueError("All currency tokens in the order must be the same token")
 
     return validate_offer_balances_and_approvals(
         offer=order_parameters.offer,
@@ -266,7 +265,7 @@ def map_order_amounts_from_units_to_fill(
     order: Order, units_to_fill: int, total_filled: int, total_size: int
 ):
     if units_to_fill <= 0:
-        raise ValidationError("Units to fill must be greater than 1")
+        raise ValueError("Units to fill must be greater than 1")
 
     max_units = get_maximum_size_for_order(order)
 
