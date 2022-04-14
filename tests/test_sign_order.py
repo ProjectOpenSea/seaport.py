@@ -1,7 +1,6 @@
 from brownie.network.account import Accounts
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
-from web3.contract import Contract
 
 from consideration.consideration import Consideration
 from consideration.constants import MAX_INT, ItemType, OrderType
@@ -11,7 +10,6 @@ from consideration.utils.order import generate_random_salt
 
 def test_valid_order(
     consideration: Consideration,
-    consideration_contract,
     erc721,
     accounts: Accounts,
 ):

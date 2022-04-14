@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
+from time import sleep
 import pytest
-from brownie.network.account import Accounts
+from brownie.network.account import Accounts, _PrivateKeyAccount
 from web3 import Web3
 
 from consideration.consideration import Consideration
@@ -62,3 +63,25 @@ def erc721(DummyERC721, accounts: Accounts):
 @pytest.fixture(scope="module")
 def erc1155(DummyERC1155, accounts: Accounts):
     return DummyERC1155.deploy({"from": accounts[0]})
+
+
+@pytest.fixture(scope="module")
+def offerer(accounts: Accounts) -> _PrivateKeyAccount:
+    return accounts[0]
+
+
+@pytest.fixture(scope="module")
+def zone(accounts: Accounts) -> _PrivateKeyAccount:
+    return accounts[1]
+
+
+@pytest.fixture(scope="module")
+def fulfiller(accounts: Accounts) -> _PrivateKeyAccount:
+    return accounts[2]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup():
+    # Prevents Web3 connection error when tx hasn't finished when tests are done executing
+    # https://github.com/smartcontractkit/full-blockchain-solidity-course-py/issues/173#issuecomment-974789232
+    sleep(1)

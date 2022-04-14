@@ -84,9 +84,9 @@ class Consideration:
         self,
         offer: list[CreateInputItem],
         consideration: list[ConsiderationInputItem],
-        nonce: Optional[int],
-        fees: list[Fee],
-        account_address: Optional[str],
+        nonce: Optional[int] = None,
+        fees: list[Fee] = [],
+        account_address: Optional[str] = None,
         allow_partial_fills=False,
         restricted_by_zone=False,
         salt=generate_random_salt(),
@@ -100,7 +100,7 @@ class Consideration:
             map(
                 lambda c: ConsiderationItem(
                     **map_input_item_to_offer_item(c).dict(),
-                    recipient=c.get("recipient", offerer),
+                    recipient=c.recipient or offerer,
                 ),
                 consideration,
             )

@@ -42,15 +42,7 @@ def get_order_type_from_options(
 ):
     if allow_partial_fills:
         if restricted_by_zone:
-            return (
-                OrderType.FULL_RESTRICTED_VIA_PROXY
-                if use_proxy
-                else OrderType.FULL_RESTRICTED
-            )
-        else:
-            return OrderType.FULL_OPEN_VIA_PROXY if use_proxy else OrderType.FULL_OPEN
-    else:
-        if restricted_by_zone:
+
             return (
                 OrderType.PARTIAL_RESTRICTED_VIA_PROXY
                 if use_proxy
@@ -62,6 +54,15 @@ def get_order_type_from_options(
                 if use_proxy
                 else OrderType.PARTIAL_OPEN
             )
+    else:
+        if restricted_by_zone:
+            return (
+                OrderType.FULL_RESTRICTED_VIA_PROXY
+                if use_proxy
+                else OrderType.FULL_RESTRICTED
+            )
+        else:
+            return OrderType.FULL_OPEN_VIA_PROXY if use_proxy else OrderType.FULL_OPEN
 
 
 def multiply_basis_points(amount: int, basis_points: int) -> int:
@@ -75,9 +76,9 @@ def fee_to_consideration_item(
         itemType=ItemType.NATIVE if token == ADDRESS_ZERO else ItemType.ERC20,
         token=token,
         identifierOrCriteria=0,
-        startAmount=multiply_basis_points(base_amount, fee["basis_points"]),
-        endAmount=multiply_basis_points(base_end_amount, fee["basis_points"]),
-        recipient=fee["recipient"],
+        startAmount=multiply_basis_points(base_amount, fee.basis_points),
+        endAmount=multiply_basis_points(base_end_amount, fee.basis_points),
+        recipient=fee.recipient,
     )
 
 
@@ -85,7 +86,7 @@ def deduct_fees(consideration: list[ConsiderationItem], fees: list[Fee] = []):
     total_basis_points = 0
 
     for fee in fees:
-        total_basis_points += fee["basis_points"]
+        total_basis_points += fee.basis_points
 
     return list(
         map(
@@ -108,49 +109,44 @@ def deduct_fees(consideration: list[ConsiderationItem], fees: list[Fee] = []):
 
 def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
     # Item is an NFT
-    if "item_type" in item:
-        # Convert this into a criteria based item
-        if "identifiers" in item:
-            item = cast(Union[Erc721ItemWithCriteria, Erc1155ItemWithCriteria], item)
+    if not isinstance(item, CurrencyItem):
+        # Item is a criteria based item
+        if isinstance(item, Erc721ItemWithCriteria) or isinstance(
+            item, Erc1155ItemWithCriteria
+        ):
+            # Convert this into a criteria based item
             return OfferItem(
-                itemType=ItemType.ERC721_WITH_CRITERIA
-                if item["item_type"] == ItemType.ERC721
-                else ItemType.ERC1155_WITH_CRITERIA,
-                token=item["token"],
+                itemType=item.item_type,
+                token=item.token,
                 identifierOrCriteria=0,
-                startAmount=item.get("amount", 1),
-                endAmount=item.get("endAmount", item.get("amount", 1)),
+                startAmount=item.amount or 1,
+                endAmount=item.end_amount or item.amount or 1,
             )
-
-        if "amount" in item or "end_amount" in item:
-            item = cast(Union[BasicErc721Item, BasicErc1155Item], item)
+        elif isinstance(item, BasicErc721Item):
             return OfferItem(
-                itemType=item["item_type"],
-                token=item["token"],
-                identifierOrCriteria=item["identifier"],
-                startAmount=item.get("amount", 1),
-                endAmount=item.get("endAmount", item.get("amount", 1)),
+                itemType=item.item_type,
+                token=item.token,
+                identifierOrCriteria=item.identifier,
+                startAmount=1,
+                endAmount=1,
             )
-
-        return OfferItem(
-            itemType=item["item_type"],
-            token=item["token"],
-            identifierOrCriteria=item["identifier"],
-            startAmount=1,
-            endAmount=1,
-        )
-
-    # Item is a currency
-    item = cast(CurrencyItem, item)
+        elif isinstance(item, BasicErc1155Item):
+            return OfferItem(
+                itemType=item.item_type,
+                token=item.token,
+                identifierOrCriteria=item.identifier,
+                startAmount=item.amount,
+                endAmount=item.end_amount or item.amount or 1,
+            )
 
     return OfferItem(
         itemType=ItemType.ERC20
-        if "token" in item and item["token"] != ADDRESS_ZERO
+        if item.token and item.token != ADDRESS_ZERO
         else ItemType.NATIVE,
-        token=item["token"] or ADDRESS_ZERO,
+        token=item.token or ADDRESS_ZERO,
         identifierOrCriteria=0,
-        startAmount=item["amount"],
-        endAmount=item.get("end_amount", item["amount"]),
+        startAmount=item.amount,
+        endAmount=item.end_amount or item.amount,
     )
 
 

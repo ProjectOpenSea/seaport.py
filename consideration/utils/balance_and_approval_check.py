@@ -63,6 +63,7 @@ def get_approval_actions(
     def map_insufficient_approval_to_action(
         insufficient_approval: InsufficientApproval,
     ):
+
         if is_erc721_item(insufficient_approval.item_type) or is_erc1155_item(
             insufficient_approval.item_type
         ):

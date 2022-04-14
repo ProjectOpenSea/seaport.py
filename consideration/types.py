@@ -1,4 +1,12 @@
-from typing import Callable, Literal, Optional, TypedDict, Union
+from typing import (
+    Callable,
+    Literal,
+    Optional,
+    Protocol,
+    TypedDict,
+    Union,
+    runtime_checkable,
+)
 from typing_extensions import NotRequired
 
 from eth_typing.evm import ChecksumAddress
@@ -80,40 +88,40 @@ class AdvancedOrder(Order):
     denominator: int
 
 
-class CurrencyItem(TypedDict):
-    token: NotRequired[str]
+class CurrencyItem(BaseModel):
+    token: Optional[str] = None
     amount: int
-    end_amount: NotRequired[int]
+    end_amount: Optional[int] = None
 
 
 class ConsiderationCurrencyItem(CurrencyItem):
-    recipient: NotRequired[str]
+    recipient: Optional[str] = None
 
 
-class BasicErc721Item(TypedDict):
-    item_type: Literal[ItemType.ERC721]
+class BasicErc721Item(BaseModel):
+    item_type = ItemType.ERC721
     token: str
     identifier: int
 
 
-class Erc721ItemWithCriteria(TypedDict):
-    item_type: Literal[ItemType.ERC721]
+class Erc721ItemWithCriteria(BaseModel):
+    item_type = ItemType.ERC721_WITH_CRITERIA
     token: str
     identifiers: list[int]
     # Used for criteria based items i.e. offering to buy 5 NFTs for a collection
-    amount: NotRequired[int]
-    endAmount: NotRequired[int]
+    amount: Optional[int]
+    end_amount: Optional[int]
 
 
 Erc721Item = Union[BasicErc721Item, Erc721ItemWithCriteria]
 
 
 class BasicConsiderationErc721Item(BasicErc721Item):
-    recipient: NotRequired[str]
+    recipient: Optional[str]
 
 
 class BasicConsiderationErc721ItemWithCriteria(Erc721ItemWithCriteria):
-    recipient: NotRequired[str]
+    recipient: Optional[str]
 
 
 ConsiderationErc721Item = Union[
@@ -121,31 +129,31 @@ ConsiderationErc721Item = Union[
 ]
 
 
-class BasicErc1155Item(TypedDict):
-    item_type: Literal[ItemType.ERC1155]
+class BasicErc1155Item(BaseModel):
+    item_type = ItemType.ERC1155
     token: str
     identifier: int
     amount: int
-    end_amount: NotRequired[int]
+    end_amount: Optional[int]
 
 
-class Erc1155ItemWithCriteria(TypedDict):
-    item_type: Literal[ItemType.ERC1155]
+class Erc1155ItemWithCriteria(BaseModel):
+    item_type = ItemType.ERC1155_WITH_CRITERIA
     token: str
     identifiers: list[int]
     amount: int
-    end_amount: NotRequired[int]
+    end_amount: Optional[int]
 
 
 Erc1155Item = Union[BasicErc1155Item, Erc1155ItemWithCriteria]
 
 
 class BasicConsiderationErc1155Item(BasicErc1155Item):
-    recipient: NotRequired[str]
+    recipient: Optional[str]
 
 
 class BasicConsiderationErc1155ItemWithCriteria(Erc1155ItemWithCriteria):
-    recipient: NotRequired[str]
+    recipient: Optional[str]
 
 
 ConsiderationErc1155Item = Union[
@@ -160,7 +168,7 @@ ConsiderationInputItem = Union[
 ]
 
 
-class Fee(TypedDict):
+class Fee(BaseModel):
     recipient: str
     basis_points: int
 
@@ -177,7 +185,7 @@ class OrderStatus(BaseModel):
     total_size: int
 
 
-class BalanceAndApproval(BaseModel):
+class BalanceAndApproval(BaseModelWithEnumValues):
     token: str
     identifier_or_criteria: int
     balance: int
@@ -189,7 +197,7 @@ class BalanceAndApproval(BaseModel):
 BalancesAndApprovals = list[BalanceAndApproval]
 
 
-class InsufficientBalance(BaseModel):
+class InsufficientBalance(BaseModelWithEnumValues):
     token: str
     identifier_or_criteria: int
     required_amount: int
@@ -200,7 +208,7 @@ class InsufficientBalance(BaseModel):
 InsufficientBalances = list[InsufficientBalance]
 
 
-class InsufficientApproval(BaseModel):
+class InsufficientApproval(BaseModelWithEnumValues):
     token: str
     identifier_or_criteria: int
     approved_amount: int
@@ -217,9 +225,24 @@ InsufficientApprovals = list[InsufficientApproval]
 # };
 
 
+@runtime_checkable
+class Transact(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> HexBytes:
+        ...
+
+
+@runtime_checkable
+class BuildTransaction(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> TxParams:
+        ...
+
+
 class Transaction(BaseModel):
-    transact: Callable[[Optional[TxParams]], HexBytes]
-    build_transaction: Callable[[Optional[TxParams]], TxParams]
+    transact: Transact
+    build_transaction: BuildTransaction
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class CreatedOrder(Order):
@@ -231,7 +254,7 @@ class CreateOrderAction(BaseModel):
     create_order: Callable[[], CreatedOrder]
 
 
-class ApprovalAction(BaseModel):
+class ApprovalAction(BaseModelWithEnumValues):
     type = "approval"
     token: str
     identifier_or_criteria: int

@@ -10,27 +10,30 @@ from pydantic import BaseModel
 
 
 def is_currency_item(item_type: ItemType):
-    return item_type in [ItemType.NATIVE, ItemType.ERC20]
+    return item_type in [ItemType.NATIVE.value, ItemType.ERC20.value]
 
 
 def is_native_currency_item(item_type: ItemType):
-    return item_type == ItemType.NATIVE
+    return item_type == ItemType.NATIVE.value
 
 
 def is_erc20_item(item_type: ItemType):
-    return item_type == ItemType.ERC20
+    return item_type == ItemType.ERC20.value
 
 
 def is_erc721_item(item_type: ItemType):
-    return item_type in [ItemType.ERC721, ItemType.ERC721_WITH_CRITERIA]
+    return item_type in [ItemType.ERC721.value, ItemType.ERC721_WITH_CRITERIA.value]
 
 
 def is_erc1155_item(item_type: ItemType):
-    return item_type in [ItemType.ERC1155, ItemType.ERC1155_WITH_CRITERIA]
+    return item_type in [ItemType.ERC1155.value, ItemType.ERC1155_WITH_CRITERIA.value]
 
 
 def is_criteria_item(item_type: ItemType):
-    return item_type in [ItemType.ERC721_WITH_CRITERIA, ItemType.ERC1155_WITH_CRITERIA]
+    return item_type in [
+        ItemType.ERC721_WITH_CRITERIA.value,
+        ItemType.ERC1155_WITH_CRITERIA.value,
+    ]
 
 
 class TimeBasedItemParams(BaseModel):
