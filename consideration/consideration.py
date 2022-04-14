@@ -1,14 +1,35 @@
 from itertools import chain
 from time import time
-from typing import Optional, Type
+from typing import Optional, cast
 
 from web3 import Web3
+from web3.constants import ADDRESS_ZERO
 from web3.contract import Contract
 from web3.providers.base import BaseProvider
 from web3.types import RPCEndpoint
-from web3.constants import ADDRESS_ZERO
-from consideration.utils.approval import get_approval_actions
+
+from consideration.abi.Consideration import CONSIDERATION_ABI
+from consideration.constants import (
+    CONSIDERATION_CONTRACT_NAME,
+    CONSIDERATION_CONTRACT_VERSION,
+    EIP_712_ORDER_TYPE,
+    MAX_INT,
+)
+from consideration.types import (
+    ConsiderationConfig,
+    ConsiderationInputItem,
+    ConsiderationItem,
+    CreatedOrder,
+    CreateInputItem,
+    CreateOrderAction,
+    CreateOrderUseCase,
+    Fee,
+    Order,
+    OrderParameters,
+    Transaction,
+)
 from consideration.utils.balance_and_approval_check import (
+    get_approval_actions,
     get_balances_and_approvals,
     get_insufficient_balance_and_approval_amounts,
     use_proxy_from_approvals,
@@ -25,27 +46,6 @@ from consideration.utils.order import (
     map_input_item_to_offer_item,
     total_items_amount,
     validate_order_parameters,
-)
-
-from consideration.abi.Consideration import CONSIDERATION_ABI
-from consideration.constants import (
-    CONSIDERATION_CONTRACT_NAME,
-    CONSIDERATION_CONTRACT_VERSION,
-    EIP_712_ORDER_TYPE,
-    MAX_INT,
-)
-from consideration.types import (
-    ConsiderationConfig,
-    ConsiderationInputItem,
-    ConsiderationItem,
-    CreateInputItem,
-    CreateOrderAction,
-    CreatedOrder,
-    Fee,
-    Order,
-    OrderParameters,
-    OrderUseCase,
-    Transaction,
 )
 from consideration.utils.proxy import get_proxy
 from consideration.utils.pydantic import dict_int_to_str, parse_model_list
@@ -93,7 +93,7 @@ class Consideration:
         zone: str = ADDRESS_ZERO,
         start_time: int = int(time()),
         end_time: int = MAX_INT,
-    ):
+    ) -> CreateOrderUseCase:
         offerer = account_address or self.web3.eth.accounts[0]
         offer_items = list(map(map_input_item_to_offer_item, offer))
         consideration_items = list(
@@ -225,8 +225,11 @@ class Consideration:
 
         actions = list(chain(approval_actions, [create_order_action]))
 
-        return OrderUseCase(
-            actions=actions, execute_all_actions=lambda: execute_all_actions(actions)
+        return CreateOrderUseCase(
+            actions=actions,
+            execute_all_actions=lambda: cast(
+                CreatedOrder, execute_all_actions(actions)
+            ),
         )
 
     def get_nonce(self, offerer: str, zone: str) -> int:

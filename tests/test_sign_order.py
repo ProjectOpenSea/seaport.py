@@ -7,7 +7,6 @@ from consideration.consideration import Consideration
 from consideration.constants import MAX_INT, ItemType, OrderType
 from consideration.types import ConsiderationItem, OfferItem, OrderParameters
 from consideration.utils.order import generate_random_salt
-from consideration.utils.pydantic import to_struct
 
 
 def test_valid_order(

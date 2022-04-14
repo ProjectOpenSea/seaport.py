@@ -1,4 +1,4 @@
-from typing import Callable, Literal, Optional, Type, TypeVar, TypedDict, Union
+from typing import Callable, Literal, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
 from eth_typing.evm import ChecksumAddress
@@ -249,9 +249,14 @@ CreateOrderActions = list[Union[ApprovalAction, CreateOrderAction]]
 OrderExchangeActions = list[Union[ApprovalAction, ExchangeAction]]
 
 
-class OrderUseCase(BaseModel):
-    actions: Union[CreateOrderActions, OrderExchangeActions]
-    execute_all_actions: Callable[[], Union[CreatedOrder, HexBytes]]
+class CreateOrderUseCase(BaseModel):
+    actions: CreateOrderActions
+    execute_all_actions: Callable[[], CreatedOrder]
+
+
+class FulfillOrderUseCase(BaseModel):
+    actions: OrderExchangeActions
+    execute_all_actions: Callable[[], HexBytes]
 
 
 # export type FulfillmentComponent = {

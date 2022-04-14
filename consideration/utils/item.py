@@ -1,6 +1,6 @@
 from collections import deque
 from itertools import chain
-from typing import Dict, Optional, Sequence
+from typing import Optional, Sequence
 
 from consideration.constants import ItemType
 from consideration.types import InputCriteria, Item, Order
