@@ -1,4 +1,5 @@
-from typing import Any, Dict, Sequence, Union
+import json
+from typing import Sequence
 
 from pydantic import BaseModel
 
@@ -12,16 +13,5 @@ def parse_model_list(models: Sequence[BaseModel]):
     return list(map(lambda x: x.dict(), models))
 
 
-def to_struct(dict_or_list: Union[Dict, list]):
-    return tuple(
-        [
-            to_struct(x) if isinstance(x, dict) or isinstance(x, list) else x
-            for x in (
-                isinstance(dict_or_list, dict) and dict_or_list.values() or dict_or_list
-            )
-        ]
-    )
-
-
-def dict_int_to_str(d: Dict):
+def dict_int_to_str(d: dict):
     return {key: str(val) if isinstance(val, int) else val for key, val in d.items()}

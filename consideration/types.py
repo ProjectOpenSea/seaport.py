@@ -1,4 +1,13 @@
-from typing import Callable, Optional, Type, TypeVar
+from typing import (
+    Callable,
+    Literal,
+    Optional,
+    Protocol,
+    TypedDict,
+    Union,
+    runtime_checkable,
+)
+from typing_extensions import NotRequired
 
 from eth_typing.evm import ChecksumAddress
 from hexbytes import HexBytes
@@ -7,8 +16,7 @@ from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.types import TxParams
 
-from consideration.constants import ItemType, OrderType
-from consideration.utils.proxy import ProxyStrategy
+from consideration.constants import ItemType, OrderType, ProxyStrategy
 from consideration.utils.pydantic import BaseModelWithEnumValues
 
 
@@ -51,7 +59,7 @@ class ConsiderationItem(BaseModelWithEnumValues):
     recipient: str
 
 
-Item = TypeVar("Item", OfferItem, ConsiderationItem)
+Item = Union[OfferItem, ConsiderationItem]
 
 
 class OrderParameters(BaseModelWithEnumValues):
@@ -70,12 +78,6 @@ class OrderComponents(OrderParameters):
     nonce: int
 
 
-# @dataclass
-# class Order:
-#     parameters: OrderParameters
-#     signature: str
-
-
 class Order(BaseModel):
     parameters: OrderParameters
     signature: str
@@ -86,135 +88,199 @@ class AdvancedOrder(Order):
     denominator: int
 
 
-class TransactionRequest(BaseModel):
-    transact: Callable[[Optional[TxParams]], HexBytes]
-    build_transaction: Callable[[Optional[TxParams]], TxParams]
+class CurrencyItem(BaseModel):
+    token: Optional[str] = None
+    amount: int
+    end_amount: Optional[int] = None
 
 
-# export type BasicErc721Item = {
-#   itemType: ItemType.ERC721;
-#   token: string;
-#   identifier: string;
-# };
+class ConsiderationCurrencyItem(CurrencyItem):
+    recipient: Optional[str] = None
 
-# export type Erc721ItemWithCriteria = {
-#   itemType: ItemType.ERC721;
-#   token: string;
-#   identifiers: string[];
-#   // Used for criteria based items i.e. offering to buy 5 NFTs for a collection
-#   amount?: string;
-#   endAmount?: string;
-# };
 
-# type Erc721Item = BasicErc721Item | Erc721ItemWithCriteria;
+class BasicErc721Item(BaseModel):
+    item_type = ItemType.ERC721
+    token: str
+    identifier: int
 
-# export type BasicErc1155Item = {
-#   itemType: ItemType.ERC1155;
-#   token: string;
-#   identifier: string;
-#   amount: string;
-#   endAmount?: string;
-# };
 
-# export type Erc1155ItemWithCriteria = {
-#   itemType: ItemType.ERC1155;
-#   token: string;
-#   identifiers: string[];
-#   amount: string;
-#   endAmount?: string;
-# };
+class Erc721ItemWithCriteria(BaseModel):
+    item_type = ItemType.ERC721_WITH_CRITERIA
+    token: str
+    identifiers: list[int]
+    # Used for criteria based items i.e. offering to buy 5 NFTs for a collection
+    amount: Optional[int]
+    end_amount: Optional[int]
 
-# type Erc1155Item = BasicErc1155Item | Erc1155ItemWithCriteria;
 
-# export type CurrencyItem = {
-#   token?: string;
-#   amount: string;
-#   endAmount?: string;
-# };
+Erc721Item = Union[BasicErc721Item, Erc721ItemWithCriteria]
 
-# export type CreateInputItem = Erc721Item | Erc1155Item | CurrencyItem;
 
-# export type ConsiderationInputItem = CreateInputItem & { recipient?: string };
+class BasicConsiderationErc721Item(BasicErc721Item):
+    recipient: Optional[str] = None
 
-# export type Fee = {
-#   recipient: string;
-#   basisPoints: number;
-# };
 
-# export type CreateOrderInput = {
-#   zone?: string;
-#   startTime?: string;
-#   endTime?: string;
-#   offer: readonly CreateInputItem[];
-#   consideration: readonly ConsiderationInputItem[];
-#   nonce?: number;
-#   fees?: readonly Fee[];
-#   allowPartialFills?: boolean;
-#   restrictedByZone?: boolean;
-#   useProxy?: boolean;
-#   salt?: string;
-# };
+class BasicConsiderationErc721ItemWithCriteria(Erc721ItemWithCriteria):
+    recipient: Optional[str] = None
 
-# export type InputCriteria = {
-#   identifier: string;
-#   validIdentifiers: string[];
-# };
 
-# export type OrderStatus = {
-#   isValidated: boolean;
-#   isCancelled: boolean;
-#   totalFilled: BigNumber;
-#   totalSize: BigNumber;
-# };
+ConsiderationErc721Item = Union[
+    BasicConsiderationErc721Item, BasicConsiderationErc721ItemWithCriteria
+]
+
+
+class BasicErc1155Item(BaseModel):
+    item_type = ItemType.ERC1155
+    token: str
+    identifier: int
+    amount: int
+    end_amount: Optional[int] = None
+
+
+class Erc1155ItemWithCriteria(BaseModel):
+    item_type = ItemType.ERC1155_WITH_CRITERIA
+    token: str
+    identifiers: list[int]
+    amount: int
+    end_amount: Optional[int] = None
+
+
+Erc1155Item = Union[BasicErc1155Item, Erc1155ItemWithCriteria]
+
+
+class BasicConsiderationErc1155Item(BasicErc1155Item):
+    recipient: Optional[str] = None
+
+
+class BasicConsiderationErc1155ItemWithCriteria(Erc1155ItemWithCriteria):
+    recipient: Optional[str] = None
+
+
+ConsiderationErc1155Item = Union[
+    BasicConsiderationErc1155Item, BasicConsiderationErc1155ItemWithCriteria
+]
+
+
+CreateInputItem = Union[Erc721Item, Erc1155Item, CurrencyItem]
+
+ConsiderationInputItem = Union[
+    ConsiderationErc721Item, ConsiderationErc1155Item, ConsiderationCurrencyItem
+]
+
+
+class Fee(BaseModel):
+    recipient: str
+    basis_points: int
+
+
+class InputCriteria(BaseModel):
+    identifier: int
+    valid_identifiers: list[int]
+
+
+class OrderStatus(BaseModel):
+    is_validated: bool
+    is_cancelled: bool
+    total_filled: int
+    total_size: int
+
+
+class BalanceAndApproval(BaseModelWithEnumValues):
+    token: str
+    identifier_or_criteria: int
+    balance: int
+    owner_approved_amount: int
+    proxy_approved_amount: int
+    item_type: ItemType
+
+
+BalancesAndApprovals = list[BalanceAndApproval]
+
+
+class InsufficientBalance(BaseModelWithEnumValues):
+    token: str
+    identifier_or_criteria: int
+    required_amount: int
+    amount_have: int
+    item_type: ItemType
+
+
+InsufficientBalances = list[InsufficientBalance]
+
+
+class InsufficientApproval(BaseModelWithEnumValues):
+    token: str
+    identifier_or_criteria: int
+    approved_amount: int
+    required_approved_amount: int
+    operator: str
+    item_type: ItemType
+
+
+InsufficientApprovals = list[InsufficientApproval]
+
 
 # export type CreatedOrder = Order & {
 #   nonce: number;
 # };
 
-# type TransactionRequest = {
-#   send: () => Promise<ContractTransaction>;
-#   populatedTransaction: Promise<PopulatedTransaction>;
-# };
 
-# export type ApprovalAction = {
-#   type: "approval";
-#   token: string;
-#   identifierOrCriteria: string;
-#   itemType: ItemType;
-#   operator: string;
-#   transactionRequest: TransactionRequest;
-# };
+@runtime_checkable
+class Transact(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> HexBytes:
+        ...
 
-# export type ExchangeAction = {
-#   type: "exchange";
-#   transactionRequest: TransactionRequest;
-# };
 
-# export type CreateOrderAction = {
-#   type: "create";
-#   createOrder: () => Promise<CreatedOrder>;
-# };
+@runtime_checkable
+class BuildTransaction(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> TxParams:
+        ...
 
-# export type TransactionAction = ApprovalAction | ExchangeAction;
 
-# export type CreateOrderActions = readonly [
-#   ...ApprovalAction[],
-#   CreateOrderAction
-# ];
+class Transaction(BaseModel):
+    transact: Transact
+    build_transaction: BuildTransaction
 
-# export type OrderExchangeActions = readonly [
-#   ...ApprovalAction[],
-#   ExchangeAction
-# ];
+    class Config:
+        arbitrary_types_allowed = True
 
-# export type OrderUseCase<T extends CreateOrderAction | ExchangeAction> = {
-#   actions: T extends CreateOrderAction
-#     ? CreateOrderActions
-#     : OrderExchangeActions;
-#   executeAllActions: () => Promise<
-#     T extends CreateOrderAction ? CreatedOrder : ContractTransaction
-#   >;
-# };
+
+class CreatedOrder(Order):
+    nonce: int
+
+
+class CreateOrderAction(BaseModel):
+    type = "create"
+    create_order: Callable[[], CreatedOrder]
+
+
+class ApprovalAction(BaseModelWithEnumValues):
+    type = "approval"
+    token: str
+    identifier_or_criteria: int
+    item_type: ItemType
+    operator: str
+    transaction: Transaction
+
+
+class ExchangeAction(BaseModel):
+    type = "exchange"
+    transaction: Transaction
+
+
+CreateOrderActions = list[Union[ApprovalAction, CreateOrderAction]]
+OrderExchangeActions = list[Union[ApprovalAction, ExchangeAction]]
+
+
+class CreateOrderUseCase(BaseModel):
+    actions: CreateOrderActions
+    execute_all_actions: Callable[[], CreatedOrder]
+
+
+class FulfillOrderUseCase(BaseModel):
+    actions: OrderExchangeActions
+    execute_all_actions: Callable[[], HexBytes]
+
 
 # export type FulfillmentComponent = {
 #   orderIndex: number;
