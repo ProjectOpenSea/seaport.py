@@ -71,6 +71,8 @@ class OrderParameters(BaseModelWithEnumValues):
     salt: int
     offer: list[OfferItem]
     consideration: list[ConsiderationItem]
+    zoneHash: str
+    conduit: str
     totalOriginalConsiderationItems: int
 
 

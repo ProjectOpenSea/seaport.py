@@ -1,10 +1,10 @@
 dependencies:
-  - ProjectOpenSea/consideration@rc.0.1
+  - ProjectOpenSea/consideration@rc.0.2
   - OpenZeppelin/openzeppelin-contracts@4.5.0
 
 # path remapping to support OpenZepplin imports with NPM-style path
 compiler:
   solc:
     remappings:
-      - 'consideration=ProjectOpenSea/consideration@rc.0.1'
+      - 'consideration=ProjectOpenSea/consideration@rc.0.2'
       - '@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.5.0'

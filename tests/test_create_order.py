@@ -1,7 +1,13 @@
 import pytest
 from web3 import Web3
 from consideration.consideration import Consideration
-from consideration.constants import MAX_INT, ItemType, OrderType, ProxyStrategy
+from consideration.constants import (
+    LEGACY_PROXY_CONDUIT,
+    MAX_INT,
+    ItemType,
+    OrderType,
+    ProxyStrategy,
+)
 from consideration.types import (
     ApprovalAction,
     BasicConsiderationErc721Item,
@@ -515,11 +521,12 @@ def test_use_proxy_if_zero_approvals(
                 },
             ],
             "offerer": offerer.address,
-            "orderType": OrderType.FULL_OPEN_VIA_PROXY.value,
+            "orderType": OrderType.FULL_OPEN.value,
             "salt": salt,
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "conduit": LEGACY_PROXY_CONDUIT,
         },
         "signature": order.signature,
         "nonce": 0,
@@ -731,11 +738,12 @@ def test_should_always_use_proxy_if_proxy_strategy_is_always(
                 },
             ],
             "offerer": offerer.address,
-            "orderType": OrderType.FULL_OPEN_VIA_PROXY.value,
+            "orderType": OrderType.FULL_OPEN.value,
             "salt": salt,
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "conduit": LEGACY_PROXY_CONDUIT,
         },
         "signature": order.signature,
         "nonce": 0,

@@ -19,7 +19,6 @@ def isolate(fn_isolation):
 @pytest.fixture(scope="module")
 def legacy_proxy_registry(WyvernProxyRegistry, accounts: Accounts):
     legacy_proxy_registry_contract = WyvernProxyRegistry.deploy({"from": accounts[0]})
-    legacy_proxy_registry_contract.delegateProxyImplementation()
 
     return legacy_proxy_registry_contract
 
@@ -51,18 +50,18 @@ def consideration(consideration_contract, legacy_proxy_registry, accounts: Accou
 
 
 @pytest.fixture(scope="module")
-def erc20(DummyERC20, accounts: Accounts):
-    return DummyERC20.deploy({"from": accounts[0]})
+def erc20(TestERC20, accounts: Accounts):
+    return TestERC20.deploy({"from": accounts[0]})
 
 
 @pytest.fixture(scope="module")
-def erc721(DummyERC721, accounts: Accounts):
-    return DummyERC721.deploy({"from": accounts[0]})
+def erc721(TestERC721, accounts: Accounts):
+    return TestERC721.deploy({"from": accounts[0]})
 
 
 @pytest.fixture(scope="module")
-def erc1155(DummyERC1155, accounts: Accounts):
-    return DummyERC1155.deploy({"from": accounts[0]})
+def erc1155(TestERC1155, accounts: Accounts):
+    return TestERC1155.deploy({"from": accounts[0]})
 
 
 @pytest.fixture(scope="module")

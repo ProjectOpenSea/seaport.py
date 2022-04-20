@@ -13,7 +13,9 @@ from consideration.constants import (
     CONSIDERATION_CONTRACT_NAME,
     CONSIDERATION_CONTRACT_VERSION,
     EIP_712_ORDER_TYPE,
+    LEGACY_PROXY_CONDUIT,
     MAX_INT,
+    NO_CONDUIT,
 )
 from consideration.types import (
     ConsiderationConfig,
@@ -34,6 +36,7 @@ from consideration.utils.balance_and_approval_check import (
     get_insufficient_balance_and_approval_amounts,
     use_proxy_from_approvals,
 )
+from consideration.utils.hex_utils import bytes_to_hex
 from consideration.utils.item import (
     get_summed_token_and_identifier_amounts,
     is_currency_item,
@@ -123,7 +126,7 @@ class Consideration:
             web3=self.web3,
         )
 
-        resolved_nonce = nonce or self.get_nonce(offerer=offerer, zone=zone)
+        resolved_nonce = nonce or self.get_nonce(offerer=offerer)
 
         balances_and_approvals = get_balances_and_approvals(
             owner=offerer,
@@ -176,6 +179,8 @@ class Consideration:
             )
         )
 
+        conduit = LEGACY_PROXY_CONDUIT if use_proxy else NO_CONDUIT
+
         order_parameters = OrderParameters(
             offerer=offerer,
             zone=zone,
@@ -185,6 +190,8 @@ class Consideration:
             offer=offer_items,
             consideration=consideration_items_with_fees,
             totalOriginalConsiderationItems=len(consideration_items_with_fees),
+            zoneHash=bytes_to_hex(resolved_nonce.to_bytes(32, "little")),
+            conduit=conduit,
             salt=salt,
         )
 
@@ -232,8 +239,8 @@ class Consideration:
             ),
         )
 
-    def get_nonce(self, offerer: str, zone: str) -> int:
-        return self.contract.functions.getNonce(offerer, zone).call()
+    def get_nonce(self, offerer: str) -> int:
+        return self.contract.functions.getNonce(offerer).call()
 
     def sign_order(
         self,

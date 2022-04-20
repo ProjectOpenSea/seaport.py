@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from web3.constants import ADDRESS_ZERO
 
 CONSIDERATION_CONTRACT_NAME = "Consideration"
 CONSIDERATION_CONTRACT_VERSION = "rc.1"
@@ -17,7 +18,9 @@ EIP_712_ORDER_TYPE = {
         {"name": "orderType", "type": "uint8"},
         {"name": "startTime", "type": "uint256"},
         {"name": "endTime", "type": "uint256"},
+        {"name": "zoneHash", "type": "bytes32"},
         {"name": "salt", "type": "uint256"},
+        {"name": "conduit", "type": "address"},
         {"name": "nonce", "type": "uint256"},
     ],
     "OfferItem": [
@@ -43,16 +46,6 @@ class OrderType(Enum):
     PARTIAL_OPEN = 1  # Partial fills supported, anyone can execute
     FULL_RESTRICTED = 2  # No partial fills, only offerer or zone can execute
     PARTIAL_RESTRICTED = 3  # Partial fills supported, only offerer or zone can execute
-    FULL_OPEN_VIA_PROXY = (
-        4  # No partial fills, anyone can execute, routed through proxy
-    )
-    PARTIAL_OPEN_VIA_PROXY = (
-        5  # Partial fills supported, anyone can execute, routed through proxy
-    )
-    FULL_RESTRICTED_VIA_PROXY = (
-        6  # No partial fills, only offerer or zone can execute, routed through proxy
-    )
-    PARTIAL_RESTRICTED_VIA_PROXY = 7  # Partial fills supported, only offerer or zone can execute, routed through proxy
 
 
 class ItemType(Enum):
@@ -69,13 +62,13 @@ class Side(Enum):
     CONSIDERATION = 1
 
 
-class BasicFulfillOrder(Enum):
-    ETH_FOR_ERC721 = auto()
-    ETH_FOR_ERC1155 = auto()
-    ERC20_FOR_ERC721 = auto()
-    ERC20_FOR_ERC1155 = auto()
-    ERC721_FOR_ERC20 = auto()
-    ERC1155_FOR_ERC20 = auto()
+class BasicOrderRouteType(Enum):
+    ETH_TO_ERC721 = 0
+    ETH_TO_ERC1155 = 1
+    ERC20_TO_ERC721 = 2
+    ERC20_TO_ERC1155 = 4
+    ERC721_TO_ERC20 = 5
+    ERC1155_TO_ERC20 = 6
 
 
 class ProxyStrategy(Enum):
@@ -86,3 +79,5 @@ class ProxyStrategy(Enum):
 
 MAX_INT = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 ONE_HUNDRED_PERCENT_BP = 10000
+NO_CONDUIT = ADDRESS_ZERO
+LEGACY_PROXY_CONDUIT = ADDRESS_ZERO[:-1] + "1"
