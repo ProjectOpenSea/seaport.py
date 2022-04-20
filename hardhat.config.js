@@ -13,6 +13,7 @@ module.exports = {
       // brownie expects calls and transactions to throw on revert
       throwOnTransactionFailures: true,
       throwOnCallFailures: true,
+      allowUnlimitedContractSize: true,
     },
   },
 };

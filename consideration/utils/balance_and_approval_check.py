@@ -8,7 +8,13 @@ from consideration.abi.ERC721 import ERC721_ABI
 from consideration.types import ApprovalAction, Item, Transaction
 
 
-from consideration.constants import MAX_INT, ItemType, OrderType, ProxyStrategy
+from consideration.constants import (
+    LEGACY_PROXY_CONDUIT,
+    MAX_INT,
+    ItemType,
+    OrderType,
+    ProxyStrategy,
+)
 from consideration.types import (
     BalanceAndApproval,
     BalancesAndApprovals,
@@ -325,7 +331,7 @@ def get_insufficient_balance_and_approval_amounts(
 def validate_offer_balances_and_approvals(
     *,
     offer: list[OfferItem],
-    order_type: OrderType,
+    conduit: str,
     criterias: list[InputCriteria],
     balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
@@ -363,7 +369,7 @@ def validate_offer_balances_and_approvals(
 
     approvals_to_check = (
         insufficient_balance_and_approval_amounts.insufficient_proxy_approvals
-        if use_offerer_proxy(order_type)
+        if use_offerer_proxy(conduit)
         else insufficient_balance_and_approval_amounts.insufficient_owner_approvals
     )
 
@@ -390,7 +396,7 @@ def validate_offer_balances_and_approvals(
 def validate_basic_fulfill_balances_and_approvals(
     *,
     offer: list[OfferItem],
-    order_type: OrderType,
+    conduit: str,
     consideration: list[ConsiderationItem],
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
@@ -401,7 +407,7 @@ def validate_basic_fulfill_balances_and_approvals(
 ):
     validate_offer_balances_and_approvals(
         offer=offer,
-        order_type=order_type,
+        conduit=conduit,
         criterias=[],
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
@@ -454,7 +460,7 @@ def validate_basic_fulfill_balances_and_approvals(
 def validate_standard_fulfill_balances_and_approvals(
     *,
     offer: list[OfferItem],
-    order_type: OrderType,
+    conduit: str,
     consideration: list[ConsiderationItem],
     offer_criteria: list[InputCriteria],
     consideration_criteria: list[InputCriteria],
@@ -467,7 +473,7 @@ def validate_standard_fulfill_balances_and_approvals(
 ):
     validate_offer_balances_and_approvals(
         offer=offer,
-        order_type=order_type,
+        conduit=conduit,
         criterias=[],
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
@@ -532,13 +538,8 @@ def validate_standard_fulfill_balances_and_approvals(
     return insufficient_balance_and_approval_amounts
 
 
-def use_offerer_proxy(order_type: OrderType):
-    return order_type in [
-        OrderType.FULL_OPEN_VIA_PROXY.value,
-        OrderType.PARTIAL_OPEN_VIA_PROXY.value,
-        OrderType.FULL_RESTRICTED_VIA_PROXY.value,
-        OrderType.PARTIAL_RESTRICTED_VIA_PROXY.value,
-    ]
+def use_offerer_proxy(conduit: str):
+    return conduit == LEGACY_PROXY_CONDUIT
 
 
 def use_proxy_from_approvals(

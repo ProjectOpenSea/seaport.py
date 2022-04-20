@@ -40,28 +40,12 @@ def get_order_type_from_options(
     allow_partial_fills: bool, restricted_by_zone: bool, use_proxy: bool
 ):
     if allow_partial_fills:
-        if restricted_by_zone:
-
-            return (
-                OrderType.PARTIAL_RESTRICTED_VIA_PROXY
-                if use_proxy
-                else OrderType.PARTIAL_RESTRICTED
-            )
-        else:
-            return (
-                OrderType.PARTIAL_OPEN_VIA_PROXY
-                if use_proxy
-                else OrderType.PARTIAL_OPEN
-            )
-    else:
-        if restricted_by_zone:
-            return (
-                OrderType.FULL_RESTRICTED_VIA_PROXY
-                if use_proxy
-                else OrderType.FULL_RESTRICTED
-            )
-        else:
-            return OrderType.FULL_OPEN_VIA_PROXY if use_proxy else OrderType.FULL_OPEN
+        return (
+            OrderType.PARTIAL_RESTRICTED
+            if restricted_by_zone
+            else OrderType.PARTIAL_OPEN
+        )
+    return OrderType.FULL_RESTRICTED if restricted_by_zone else OrderType.FULL_OPEN
 
 
 def multiply_basis_points(amount: int, basis_points: int) -> int:
@@ -183,7 +167,7 @@ def validate_order_parameters(
 
     return validate_offer_balances_and_approvals(
         offer=order_parameters.offer,
-        order_type=order_parameters.orderType,
+        conduit=order_parameters.conduit,
         criterias=offer_criteria,
         balances_and_approvals=balances_and_approvals,
         throw_on_insufficient_balances=throw_on_insufficient_balances,
