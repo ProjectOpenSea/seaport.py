@@ -102,6 +102,8 @@ def test_create_order_success(
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
         "nonce": 0,
@@ -188,6 +190,8 @@ def test_create_order_offer_erc20_for_erc721(
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
         "nonce": 0,
@@ -305,6 +309,8 @@ def test_create_order_offer_erc20_and_erc1155(
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
         "nonce": 0,
@@ -342,8 +348,6 @@ def test_raises_if_currencies_are_different(
             fees=[Fee(recipient=zone.address, basis_points=250)],
         )
 
-    pass
-
 
 def test_raises_if_offerer_insufficient_balance(
     consideration: Consideration, erc721, offerer, zone
@@ -365,8 +369,6 @@ def test_raises_if_offerer_insufficient_balance(
             fees=[Fee(recipient=zone.address, basis_points=250)],
             account_address=offerer.address,
         )
-
-    pass
 
 
 def test_skip_balance_and_approval_validation_if_config_skips(
@@ -443,6 +445,8 @@ def test_skip_balance_and_approval_validation_if_config_skips(
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
         "nonce": 0,
@@ -527,6 +531,7 @@ def test_use_proxy_if_zero_approvals(
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
             "conduit": LEGACY_PROXY_CONDUIT,
+            "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
         },
         "signature": order.signature,
         "nonce": 0,
@@ -635,6 +640,8 @@ def test_should_not_use_proxy_if_proxy_strategy_is_never(
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
         "nonce": 0,
@@ -743,6 +750,7 @@ def test_should_always_use_proxy_if_proxy_strategy_is_always(
             "startTime": start_time,
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
+            "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "conduit": LEGACY_PROXY_CONDUIT,
         },
         "signature": order.signature,

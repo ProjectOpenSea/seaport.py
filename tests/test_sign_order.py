@@ -61,7 +61,7 @@ def test_valid_order(
         salt=salt,
         startTime=start_time,
         endTime=end_time,
-        zoneHash="0x3000000000000000000000000000000000000000000000000000000000000000",
+        zoneHash=bytes_to_hex(nonce.to_bytes(32, "little")),
         conduit=ADDRESS_ZERO,
     )
 
@@ -78,7 +78,7 @@ def test_valid_order(
 
     # Use a random address to verify that the signature is valid
     is_valid = consideration.contract.functions.validate([order]).call(
-        {"from": offerer.address}
+        {"from": random_signer.address}
     )
 
     assert is_valid == True
