@@ -5,14 +5,12 @@ from web3.contract import Contract
 from web3.constants import ADDRESS_ZERO
 from consideration.abi.ERC20 import ERC20_ABI
 from consideration.abi.ERC721 import ERC721_ABI
-from consideration.types import ApprovalAction, Item, Transaction
+from consideration.types import ApprovalAction, Item, TransactionMethods
 
 
 from consideration.constants import (
     LEGACY_PROXY_CONDUIT,
     MAX_INT,
-    ItemType,
-    OrderType,
     ProxyStrategy,
 )
 from consideration.types import (
@@ -26,7 +24,6 @@ from consideration.types import (
     InsufficientBalances,
     Item,
     OfferItem,
-    OrderParameters,
 )
 from consideration.utils.balance import balance_of
 from consideration.utils.item import (
@@ -38,6 +35,7 @@ from consideration.utils.item import (
     is_erc721_item,
     get_item_index_to_criteria_map,
 )
+from consideration.utils.usecase import get_transaction_methods
 
 
 def approved_item_amount(owner: str, item: Item, operator: str, web3: Web3) -> int:
@@ -97,10 +95,7 @@ def get_approval_actions(
             identifier_or_criteria=insufficient_approval.identifier_or_criteria,
             item_type=insufficient_approval.item_type,
             operator=insufficient_approval.operator,
-            transaction=Transaction(
-                transact=contract_fn.transact,
-                build_transaction=contract_fn.buildTransaction,
-            ),
+            transaction=get_transaction_methods(contract_fn),
         )
 
     return list(map(map_insufficient_approval_to_action, insufficient_approvals))

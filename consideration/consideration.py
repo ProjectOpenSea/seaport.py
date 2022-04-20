@@ -9,6 +9,7 @@ from web3.providers.base import BaseProvider
 from web3.types import RPCEndpoint
 
 from consideration.abi.Consideration import CONSIDERATION_ABI
+from consideration.abi.ProxyRegistryInterface import PROXY_REGISTRY_INTERFACE_ABI
 from consideration.constants import (
     CONSIDERATION_CONTRACT_NAME,
     CONSIDERATION_CONTRACT_VERSION,
@@ -28,7 +29,9 @@ from consideration.types import (
     CreateOrderUseCase,
     Fee,
     Order,
+    OrderComponents,
     OrderParameters,
+    OrderStatus,
     TransactionMethods,
 )
 from consideration.utils.balance_and_approval_check import (
@@ -43,6 +46,7 @@ from consideration.utils.item import (
     is_currency_item,
 )
 from consideration.utils.order import (
+    are_all_currencies_same,
     deduct_fees,
     fee_to_consideration_item,
     generate_random_salt,
@@ -50,9 +54,8 @@ from consideration.utils.order import (
     total_items_amount,
     validate_order_parameters,
 )
-from consideration.utils.proxy import get_proxy
 from consideration.utils.pydantic import dict_int_to_str, parse_model_list
-from consideration.utils.usecase import execute_all_actions
+from consideration.utils.usecase import execute_all_actions, get_transaction_methods
 
 
 class Consideration:
@@ -78,7 +81,7 @@ class Consideration:
         )
 
     def _get_order_type_from_options(
-        self, allow_partial_fills: bool, restricted_by_zone: bool, use_proxy: bool
+        self, *, allow_partial_fills: bool, restricted_by_zone: bool
     ):
         if allow_partial_fills:
             return (
@@ -88,20 +91,55 @@ class Consideration:
             )
         return OrderType.FULL_RESTRICTED if restricted_by_zone else OrderType.FULL_OPEN
 
+    def _get_legacy_conduit_proxy(self, address: str) -> str:
+        proxy_registry = self.web3.eth.contract(
+            address=Web3.toChecksumAddress(self.legacy_proxy_registry_address),
+            abi=PROXY_REGISTRY_INTERFACE_ABI,
+        )
+
+        return proxy_registry.functions.proxies(address).call()
+
     def create_order(
         self,
-        offer: list[CreateInputItem],
-        consideration: list[ConsiderationInputItem],
-        nonce: Optional[int] = None,
-        fees: list[Fee] = [],
+        *,
         account_address: Optional[str] = None,
         allow_partial_fills=False,
+        consideration: list[ConsiderationInputItem],
+        fees: list[Fee] = [],
+        nonce: Optional[int] = None,
+        offer: list[CreateInputItem],
         restricted_by_zone=False,
         salt=generate_random_salt(),
-        zone: str = ADDRESS_ZERO,
         start_time: int = int(time()),
+        zone: str = ADDRESS_ZERO,
         end_time: int = MAX_INT,
     ) -> CreateOrderUseCase:
+        """
+        Returns a use case that will create an order.
+        The use case will contain the list of actions necessary to finish creating an order.
+        The list of actions will either be an approval if approvals are necessary
+        or a signature request that will then be supplied into the final Order struct, ready to be fulfilled.
+
+        Args:
+            offer (list[CreateInputItem]): The items you are willing to offer. This is a condensed version of the Consideration struct OfferItem for convenience
+            consideration (list[ConsiderationInputItem]): The items that will go to their respective recipients upon receiving your offer.
+            nonce (Optional[int], optional): The nonce from which to create the order with. Automatically fetched from the contract if not provided.
+            fees (list[Fee], optional): Convenience array to apply fees onto the order. The fees will be deducted from the
+                                        existing consideration items and then tacked on as new
+                                        consideration items. Defaults to [].
+            account_address (Optional[str], optional): Optional address for which to create the order with.
+                                                       The account will be the first account from the provider if not specified.
+            allow_partial_fills (bool, optional): Whether to allow the order to be partially filled. Defaults to False.
+            restricted_by_zone (bool, optional): Whether the order should be restricted by zone. Defaults to False.
+            salt (_type_, optional): Random salt. Defaults to a randomly generated salt.
+            zone (str, optional): The zone of the order. Defaults to ADDRESS_ZERO.
+            start_time (int, optional): The start time of the order in unix time. Defaults to the current time.
+            end_time (int, optional): The end time of the order. Defaults to "never end".
+                                      It is HIGHLY recommended to pass in an explicit end time
+
+        Returns:
+            CreateOrderUseCase: a use case containing the list of actions needed to be performed in order to create the order
+        """
         offerer = account_address or self.web3.eth.accounts[0]
         offer_items = list(map(map_input_item_to_offer_item, offer))
         consideration_items = list(
@@ -114,6 +152,11 @@ class Consideration:
             )
         )
 
+        if not are_all_currencies_same(
+            offer=offer_items, consideration=consideration_items
+        ):
+            raise Exception("All currnecy tokens in the order must be the same token")
+
         currencies = list(
             filter(
                 lambda item: is_currency_item(item.itemType),
@@ -125,10 +168,8 @@ class Consideration:
             currencies
         )
 
-        proxy = get_proxy(
+        proxy = self._get_legacy_conduit_proxy(
             address=offerer,
-            legacy_proxy_registry_address=self.legacy_proxy_registry_address,
-            web3=self.web3,
         )
 
         resolved_nonce = nonce or self.get_nonce(offerer=offerer)
@@ -162,7 +203,6 @@ class Consideration:
         order_type = self._get_order_type_from_options(
             allow_partial_fills=allow_partial_fills,
             restricted_by_zone=restricted_by_zone,
-            use_proxy=use_proxy,
         )
 
         consideration_items_with_fees = list(
@@ -195,6 +235,7 @@ class Consideration:
             offer=offer_items,
             consideration=consideration_items_with_fees,
             totalOriginalConsiderationItems=len(consideration_items_with_fees),
+            # TODO: Placeholder
             zoneHash=bytes_to_hex(resolved_nonce.to_bytes(32, "little")),
             conduit=conduit,
             salt=salt,
@@ -243,9 +284,6 @@ class Consideration:
                 CreatedOrder, execute_all_actions(actions)
             ),
         )
-
-    def get_nonce(self, offerer: str) -> int:
-        return self.contract.functions.getNonce(offerer).call()
 
     def sign_order(
         self,
@@ -303,12 +341,76 @@ class Consideration:
 
         return response["result"]
 
-    def approve_orders(self, orders: list[Order]) -> TransactionMethods:
-        validate = self.contract.functions.validate(parse_model_list(orders))
+    def cancel_orders(self, orders: list[OrderComponents]) -> TransactionMethods:
+        """
+        Cancels a list of orders so that they are no longer fulfillable.
 
-        return TransactionMethods(
-            estimate_gas=validate.estimateGas,
-            call_static=validate.call,
-            transact=validate.transact,
-            build_transaction=validate.buildTransaction,
+        Args:
+            orders (list[OrderComponents]): list of order components
+
+        Returns:
+            TransactionMethods: the set of transaction methods that can be used
+        """
+        return get_transaction_methods(
+            self.contract.functions.cancel(parse_model_list(orders))
         )
+
+    def bulk_cancel_orders(self) -> TransactionMethods:
+        """
+        Bulk cancels all existing orders for a given account
+
+        Returns:
+            TransactionMethods: set of transaction methods that can be used
+        """
+        return get_transaction_methods(self.contract.functions.incrementNonce)
+
+    def approve_orders(self, orders: list[Order]) -> TransactionMethods:
+        """
+        Approves a list of orders on-chain. This allows accounts to fulfill the order without requiring
+        a signature
+
+        Args:
+            orders (list[Order]): list of order models
+
+        Returns:
+            TransactionMethods: set of transaction methods that can be used
+        """
+        return get_transaction_methods(
+            self.contract.functions.validate(parse_model_list(orders))
+        )
+
+    def get_order_status(self, order_hash: str) -> OrderStatus:
+        """
+        Returns the order status given an order hash
+
+        Args:
+            order_hash (str): the hash of the order
+
+        Returns:
+            OrderStatus: order status model
+        """
+        (
+            is_validated,
+            is_cancelled,
+            total_filled,
+            total_size,
+        ) = self.contract.functions.getOrderStatus(order_hash).call()
+
+        return OrderStatus(
+            is_validated=is_validated,
+            is_cancelled=is_cancelled,
+            total_filled=total_filled,
+            total_size=total_size,
+        )
+
+    def get_nonce(self, offerer: str) -> int:
+        """
+        Gets the nonce of a given offerer
+
+        Args:
+            offerer (str): the offerer to get the nonce of
+
+        Returns:
+            int: nonce
+        """
+        return self.contract.functions.getNonce(offerer).call()

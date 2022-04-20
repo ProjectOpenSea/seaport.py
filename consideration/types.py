@@ -277,12 +277,12 @@ class ApprovalAction(BaseModelWithEnumValues):
     identifier_or_criteria: int
     item_type: ItemType
     operator: str
-    transaction: Transaction
+    transaction: TransactionMethods
 
 
 class ExchangeAction(BaseModel):
     type = "exchange"
-    transaction: Transaction
+    transaction: TransactionMethods
 
 
 CreateOrderActions = list[Union[ApprovalAction, CreateOrderAction]]
