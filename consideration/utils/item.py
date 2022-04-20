@@ -37,7 +37,7 @@ def is_criteria_item(item_type: ItemType):
 
 
 class TimeBasedItemParams(BaseModel):
-    is_consideration_item: Optional[bool]
+    is_consideration_item: Optional[bool] = None
     current_block_timestamp: int
     ascending_amount_timestamp_buffer: int
     start_time: int

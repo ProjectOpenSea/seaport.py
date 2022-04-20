@@ -95,7 +95,7 @@ def get_approval_actions(
             identifier_or_criteria=insufficient_approval.identifier_or_criteria,
             item_type=insufficient_approval.item_type,
             operator=insufficient_approval.operator,
-            transaction=get_transaction_methods(contract_fn),
+            transaction_methods=get_transaction_methods(contract_fn),
         )
 
     return list(map(map_insufficient_approval_to_action, insufficient_approvals))
@@ -329,7 +329,7 @@ def validate_offer_balances_and_approvals(
     conduit: str,
     criterias: list[InputCriteria],
     balances_and_approvals: BalancesAndApprovals,
-    time_based_item_params: Optional[TimeBasedItemParams],
+    time_based_item_params: Optional[TimeBasedItemParams] = None,
     consideration_contract: Contract,
     proxy: str,
     proxy_strategy: ProxyStrategy,
@@ -397,7 +397,8 @@ def validate_basic_fulfill_balances_and_approvals(
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
     consideration_contract: Contract,
-    proxy: str,
+    offerer_proxy: str,
+    fulfiller_proxy: str,
     proxy_strategy: ProxyStrategy,
 ):
     validate_offer_balances_and_approvals(
@@ -408,7 +409,7 @@ def validate_basic_fulfill_balances_and_approvals(
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
         consideration_contract=consideration_contract,
-        proxy=proxy,
+        proxy=offerer_proxy,
         proxy_strategy=proxy_strategy,
     )
 
@@ -429,7 +430,7 @@ def validate_basic_fulfill_balances_and_approvals(
                 else None,
             ),
             consideration_contract=consideration_contract,
-            proxy=proxy,
+            proxy=fulfiller_proxy,
             proxy_strategy=proxy_strategy,
         )
     )

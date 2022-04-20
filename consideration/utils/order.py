@@ -1,6 +1,6 @@
 from itertools import chain
 from secrets import token_hex
-from typing import Optional, Union, cast
+from typing import Optional, Sequence, Union, cast
 
 from web3.contract import Contract
 from consideration.constants import (
@@ -136,38 +136,7 @@ def are_all_currencies_same(
     )
 
 
-def validate_order_parameters(
-    *,
-    order_parameters: OrderParameters,
-    offer_criteria: list[InputCriteria],
-    balances_and_approvals: BalancesAndApprovals,
-    throw_on_insufficient_balances=False,
-    throw_on_insufficient_approvals=False,
-    consideration_contract: Contract,
-    proxy: str,
-    proxy_strategy: ProxyStrategy,
-    time_based_item_params: Optional[TimeBasedItemParams] = None
-):
-    if not are_all_currencies_same(
-        offer=order_parameters.offer, consideration=order_parameters.consideration
-    ):
-        raise ValueError("All currency tokens in the order must be the same token")
-
-    return validate_offer_balances_and_approvals(
-        offer=order_parameters.offer,
-        conduit=order_parameters.conduit,
-        criterias=offer_criteria,
-        balances_and_approvals=balances_and_approvals,
-        throw_on_insufficient_balances=throw_on_insufficient_balances,
-        throw_on_insufficient_approvals=throw_on_insufficient_approvals,
-        consideration_contract=consideration_contract,
-        proxy=proxy,
-        proxy_strategy=proxy_strategy,
-        time_based_item_params=time_based_item_params,
-    )
-
-
-def total_items_amount(items: list[Item]):
+def total_items_amount(items: Sequence[Item]):
     start_amount = 0
     end_amount = 0
 

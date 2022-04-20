@@ -19,6 +19,11 @@ from consideration.constants import (
     NO_CONDUIT,
     OrderType,
 )
+from consideration.utils.fulfill import (
+    fulfill_basic_order,
+    should_use_basic_fulfill,
+    validate_and_sanitize_from_order_status,
+)
 from consideration.types import (
     ConsiderationConfig,
     ConsiderationInputItem,
@@ -28,6 +33,8 @@ from consideration.types import (
     CreateOrderAction,
     CreateOrderUseCase,
     Fee,
+    FulfillOrderUseCase,
+    InputCriteria,
     Order,
     OrderComponents,
     OrderParameters,
@@ -39,9 +46,11 @@ from consideration.utils.balance_and_approval_check import (
     get_balances_and_approvals,
     get_insufficient_balance_and_approval_amounts,
     use_proxy_from_approvals,
+    validate_offer_balances_and_approvals,
 )
 from consideration.utils.hex_utils import bytes_to_hex
 from consideration.utils.item import (
+    TimeBasedItemParams,
     get_summed_token_and_identifier_amounts,
     is_currency_item,
 )
@@ -52,7 +61,6 @@ from consideration.utils.order import (
     generate_random_salt,
     map_input_item_to_offer_item,
     total_items_amount,
-    validate_order_parameters,
 )
 from consideration.utils.pydantic import dict_int_to_str, parse_model_list
 from consideration.utils.usecase import execute_all_actions, get_transaction_methods
@@ -155,7 +163,7 @@ class Consideration:
         if not are_all_currencies_same(
             offer=offer_items, consideration=consideration_items
         ):
-            raise Exception("All currnecy tokens in the order must be the same token")
+            raise ValueError("All currency tokens in the order must be the same token")
 
         currencies = list(
             filter(
@@ -245,9 +253,10 @@ class Consideration:
             self.config.balance_and_approval_checks_on_order_creation
         )
 
-        insufficient_approvals = validate_order_parameters(
-            order_parameters=order_parameters,
-            offer_criteria=[],
+        insufficient_approvals = validate_offer_balances_and_approvals(
+            offer=order_parameters.offer,
+            conduit=order_parameters.conduit,
+            criterias=[],
             balances_and_approvals=balances_and_approvals,
             throw_on_insufficient_balances=check_balances_and_approvals,
             consideration_contract=self.contract,
@@ -287,6 +296,7 @@ class Consideration:
 
     def sign_order(
         self,
+        *,
         order_parameters: OrderParameters,
         nonce: int,
         account_address: str,
@@ -414,3 +424,182 @@ class Consideration:
             int: nonce
         """
         return self.contract.functions.getNonce(offerer).call()
+
+    def get_order_hash(self, order_components: OrderComponents) -> str:
+        """
+        Calculates the order hash of order components so we can forgo executing a request to the contract
+        This saves us RPC calls and latency.
+
+        Args:
+            order_components (OrderComponents): order components model
+
+        Returns:
+            str: the order hash
+        """
+        offer_item_type_string = "OfferItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)"
+        consideration_item_type_string = "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)"
+        order_components_partial_type_str = "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)"
+        order_type_str = f"{order_components_partial_type_str}{consideration_item_type_string}{offer_item_type_string}"
+        offer_item_type_hash = Web3.solidityKeccak(
+            offer_item_type_string.encode("utf-8")
+        )
+        consideration_item_type_hash = Web3.solidityKeccak(
+            offer_item_type_string.encode("utf-8")
+        )
+        order_type_hash = Web3.solidityKeccak(order_type_str.encode("utf-8"))
+
+        offer_hash = Web3.solidityKeccak(
+            "0x"
+            + "".join(
+                map(
+                    lambda item: Web3.solidityKeccak(
+                        "0x"
+                        + "".join(
+                            [
+                                offer_item_type_hash[2:],
+                                str(item.itemType).zfill(64),
+                                item.token[:2].zfill(64),
+                                hex(item.identifierOrCriteria)[:2].zfill(64),
+                                hex(item.startAmount)[:2].zfill(64),
+                                hex(item.endAmount)[:2].zfill(64),
+                            ]
+                        )
+                    )[:2],
+                    order_components.offer,
+                )
+            )
+        )
+
+        consideration_hash = Web3.solidityKeccak(
+            "0x"
+            + "".join(
+                map(
+                    lambda item: Web3.solidityKeccak(
+                        "0x"
+                        + "".join(
+                            [
+                                consideration_item_type_hash[2:],
+                                str(item.itemType).zfill(64),
+                                item.token[:2].zfill(64),
+                                hex(item.identifierOrCriteria)[:2].zfill(64),
+                                hex(item.startAmount)[:2].zfill(64),
+                                hex(item.endAmount)[:2].zfill(64),
+                                item.recipient[:2].zfill(64),
+                            ]
+                        )
+                    )[:2],
+                    order_components.consideration,
+                )
+            )
+        )
+
+        derived_order_hash = Web3.solidityKeccak(
+            "0x"
+            + "".join(
+                [
+                    order_type_hash[:2],
+                    order_components.offerer[:2].zfill(64),
+                    order_components.zone[:2].zfill(64),
+                    offer_hash[:2],
+                    consideration_hash[:2],
+                    str(order_components.orderType).zfill(64),
+                    hex(order_components.startTime)[:2].zfill(64),
+                    hex(order_components.endTime)[:2].zfill(64),
+                    hex(order_components.salt)[:2].zfill(64),
+                    hex(order_components.nonce)[:2].zfill(64),
+                ]
+            )
+        )
+
+        return derived_order_hash
+
+    def fulfill_order(
+        self,
+        *,
+        order: Order,
+        units_to_fill: Optional[int] = None,
+        offer_criteria: list[InputCriteria] = [],
+        consideration_criteria: list[InputCriteria] = [],
+        tips: list[ConsiderationInputItem] = [],
+        extra_data: Optional[str] = None,
+        account_address: Optional[str] = None,
+    ):
+        """
+        Fulfills an order through either the basic method or the standard method
+        Units to fill are denominated by the max possible size of the order, which is the greatest common denominator (GCD).
+        We expose a helper to get this: getMaximumSizeForOrder
+        i.e. If the maximum size of an order is 4, supplying 2 as the units to fulfill will fill half of the order
+
+        Args:
+            order (Order): standard order struct
+            units_to_fill (Optional[int], optional): the number of units to fill for the given order. Only used if you wish to partially fill an order
+            offer_criteria (list[InputCriteria], optional): an array of criteria with length equal to the number of offer criteria items. Defaults to [].
+            consideration_criteria (list[InputCriteria], optional): an array of criteria with length equal to the number of consideration criteria items. Defaults to [].
+            tips (list[ConsiderationInputItem], optional): an array of optional condensed consideration items to be added onto a fulfillment. Defaults to [].
+            extra_data (Optional[str], optional): extra data supplied to the order. Defaults to None.
+            extra_data (Optional[str], optional): extra data supplied to the order. Defaults to None.
+        """
+        fulfiller = account_address or self.web3.eth.accounts[0]
+        offerer = order.parameters.offerer
+        offerer_proxy = self._get_legacy_conduit_proxy(offerer)
+        fulfiller_proxy = self._get_legacy_conduit_proxy(fulfiller)
+        nonce = self.get_nonce(offerer)
+
+        offerer_balances_and_approvals = get_balances_and_approvals(
+            owner=offerer,
+            items=order.parameters.offer,
+            criterias=offer_criteria,
+            proxy=offerer_proxy,
+            consideration_contract=self.contract,
+            web3=self.web3,
+        )
+
+        # Get fulfiller balances and approvals of all items in the set, as offer items
+        # may be received by the fulfiller for standard fulfills
+        fulfiller_balances_and_approvals = get_balances_and_approvals(
+            owner=fulfiller,
+            items=list(chain(order.parameters.offer, order.parameters.consideration)),
+            criterias=list(chain(offer_criteria, consideration_criteria)),
+            proxy=fulfiller_proxy,
+            consideration_contract=self.contract,
+            web3=self.web3,
+        )
+
+        current_block = self.web3.eth.get_block("latest")
+        order_status = self.get_order_status(
+            self.get_order_hash(OrderComponents(**order.parameters.dict(), nonce=nonce))
+        )
+
+        current_block_timestamp = current_block.get("timestamp", int(time()))
+        sanitized_order = validate_and_sanitize_from_order_status(order, order_status)
+        time_based_item_params = TimeBasedItemParams(
+            start_time=sanitized_order.parameters.startTime,
+            end_time=sanitized_order.parameters.endTime,
+            current_block_timestamp=current_block_timestamp,
+            ascending_amount_timestamp_buffer=self.config.ascending_amount_fulfillment_buffer,
+        )
+        tip_consideration_items = list(
+            map(
+                lambda tip: ConsiderationItem(
+                    **map_input_item_to_offer_item(tip).dict(),
+                    recipient=tip.recipient or offerer,
+                ),
+                tips,
+            )
+        )
+
+        if not units_to_fill and should_use_basic_fulfill(
+            sanitized_order.parameters, order_status.total_filled
+        ):
+            return fulfill_basic_order(
+                order=sanitized_order,
+                consideration_contract=self.contract,
+                offerer_balances_and_approvals=offerer_balances_and_approvals,
+                fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
+                time_based_item_params=time_based_item_params,
+                offerer_proxy=offerer_proxy,
+                fulfiller_proxy=fulfiller_proxy,
+                proxy_strategy=self.config.proxy_strategy,
+                tips=tip_consideration_items,
+                web3=self.web3,
+            )

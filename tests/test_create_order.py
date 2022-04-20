@@ -52,11 +52,11 @@ def test_create_order_success(
         "token": erc721.address,
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
-        "transaction": approval_action.transaction,
+        "transaction_methods": approval_action.transaction_methods,
         "operator": consideration.contract.address,
     }
 
-    approval_action.transaction.transact()
+    approval_action.transaction_methods.transact()
 
     assert erc721.isApprovedForAll(offerer, consideration.contract.address)
 
@@ -140,11 +140,11 @@ def test_create_order_offer_erc20_for_erc721(
         "token": erc20.address,
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
-        "transaction": approval_action.transaction,
+        "transaction_methods": approval_action.transaction_methods,
         "operator": consideration.contract.address,
     }
 
-    approval_action.transaction.transact()
+    approval_action.transaction_methods.transact()
 
     assert erc20.allowance(offerer, consideration.contract.address) == MAX_INT
 
@@ -237,11 +237,11 @@ def test_create_order_offer_erc20_and_erc1155(
         "token": erc721.address,
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
-        "transaction": approval_action.transaction,
+        "transaction_methods": approval_action.transaction_methods,
         "operator": consideration.contract.address,
     }
 
-    approval_action.transaction.transact()
+    approval_action.transaction_methods.transact()
 
     assert erc721.isApprovedForAll(offerer, consideration.contract.address)
 
@@ -252,11 +252,11 @@ def test_create_order_offer_erc20_and_erc1155(
         "token": erc1155.address,
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
-        "transaction": second_approval_action.transaction,
+        "transaction_methods": second_approval_action.transaction_methods,
         "operator": consideration.contract.address,
     }
 
-    second_approval_action.transaction.transact()
+    second_approval_action.transaction_methods.transact()
 
     assert erc1155.isApprovedForAll(offerer, consideration.contract.address)
 
@@ -590,11 +590,11 @@ def test_should_not_use_proxy_if_proxy_strategy_is_never(
         "token": erc721.address,
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
-        "transaction": approval_action.transaction,
+        "transaction_methods": approval_action.transaction_methods,
         "operator": consideration.contract.address,
     }
 
-    approval_action.transaction.transact()
+    approval_action.transaction_methods.transact()
 
     assert erc721.isApprovedForAll(offerer, consideration.contract.address)
 
@@ -700,11 +700,11 @@ def test_should_always_use_proxy_if_proxy_strategy_is_always(
         "token": erc721.address,
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
-        "transaction": approval_action.transaction,
+        "transaction_methods": approval_action.transaction_methods,
         "operator": offerer_proxy,
     }
 
-    approval_action.transaction.transact()
+    approval_action.transaction_methods.transact()
 
     assert erc721.isApprovedForAll(offerer, consideration.contract.address)
 
