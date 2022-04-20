@@ -16,6 +16,7 @@ from consideration.constants import (
     LEGACY_PROXY_CONDUIT,
     MAX_INT,
     NO_CONDUIT,
+    OrderType,
 )
 from consideration.types import (
     ConsiderationConfig,
@@ -28,7 +29,7 @@ from consideration.types import (
     Fee,
     Order,
     OrderParameters,
-    Transaction,
+    TransactionMethods,
 )
 from consideration.utils.balance_and_approval_check import (
     get_approval_actions,
@@ -45,7 +46,6 @@ from consideration.utils.order import (
     deduct_fees,
     fee_to_consideration_item,
     generate_random_salt,
-    get_order_type_from_options,
     map_input_item_to_offer_item,
     total_items_amount,
     validate_order_parameters,
@@ -58,12 +58,6 @@ from consideration.utils.usecase import execute_all_actions
 class Consideration:
     contract: Contract
     web3: Web3
-
-    # Use the multicall provider for reads for batching and performance optimisations
-    # NOTE: Do NOT await between sequential requests if you're intending to batch
-    # instead, use Promise.all() and map to fetch data in parallel
-    # https://www.npmjs.com/package/@0xsequence/multicall
-
     config: ConsiderationConfig
     legacy_proxy_registry_address: str
 
@@ -82,6 +76,17 @@ class Consideration:
             or Web3.toChecksumAddress(ADDRESS_ZERO),
             abi=CONSIDERATION_ABI,
         )
+
+    def _get_order_type_from_options(
+        self, allow_partial_fills: bool, restricted_by_zone: bool, use_proxy: bool
+    ):
+        if allow_partial_fills:
+            return (
+                OrderType.PARTIAL_RESTRICTED
+                if restricted_by_zone
+                else OrderType.PARTIAL_OPEN
+            )
+        return OrderType.FULL_RESTRICTED if restricted_by_zone else OrderType.FULL_OPEN
 
     def create_order(
         self,
@@ -154,7 +159,7 @@ class Consideration:
             proxy_strategy=self.config.proxy_strategy,
         )
 
-        order_type = get_order_type_from_options(
+        order_type = self._get_order_type_from_options(
             allow_partial_fills=allow_partial_fills,
             restricted_by_zone=restricted_by_zone,
             use_proxy=use_proxy,
@@ -298,10 +303,12 @@ class Consideration:
 
         return response["result"]
 
-    def approve_orders(self, orders: list[Order]):
+    def approve_orders(self, orders: list[Order]) -> TransactionMethods:
         validate = self.contract.functions.validate(parse_model_list(orders))
 
-        return Transaction(
+        return TransactionMethods(
+            estimate_gas=validate.estimateGas,
+            call_static=validate.call,
             transact=validate.transact,
             build_transaction=validate.buildTransaction,
         )

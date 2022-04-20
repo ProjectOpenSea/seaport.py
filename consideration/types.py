@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Callable,
     Literal,
     Optional,
@@ -228,20 +229,34 @@ InsufficientApprovals = list[InsufficientApproval]
 
 
 @runtime_checkable
-class Transact(Protocol):
-    def __call__(self, transaction: Optional[TxParams] = None) -> HexBytes:
-        ...
-
-
-@runtime_checkable
 class BuildTransaction(Protocol):
     def __call__(self, transaction: Optional[TxParams] = None) -> TxParams:
         ...
 
 
-class Transaction(BaseModel):
-    transact: Transact
+@runtime_checkable
+class CallStatic(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> Any:
+        ...
+
+
+@runtime_checkable
+class EstimateGas(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> int:
+        ...
+
+
+@runtime_checkable
+class Transact(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> HexBytes:
+        ...
+
+
+class TransactionMethods(BaseModel):
     build_transaction: BuildTransaction
+    call_static: CallStatic
+    estimate_gas: EstimateGas
+    transact: Transact
 
     class Config:
         arbitrary_types_allowed = True

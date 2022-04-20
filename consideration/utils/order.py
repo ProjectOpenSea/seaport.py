@@ -36,18 +36,6 @@ from consideration.utils.item import (
 from web3.constants import ADDRESS_ZERO
 
 
-def get_order_type_from_options(
-    allow_partial_fills: bool, restricted_by_zone: bool, use_proxy: bool
-):
-    if allow_partial_fills:
-        return (
-            OrderType.PARTIAL_RESTRICTED
-            if restricted_by_zone
-            else OrderType.PARTIAL_OPEN
-        )
-    return OrderType.FULL_RESTRICTED if restricted_by_zone else OrderType.FULL_OPEN
-
-
 def multiply_basis_points(amount: int, basis_points: int) -> int:
     return amount * basis_points // ONE_HUNDRED_PERCENT_BP
 
