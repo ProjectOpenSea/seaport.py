@@ -91,23 +91,23 @@ class AdvancedOrder(Order):
     denominator: int
 
 
-class CurrencyItem(BaseModel):
+class OfferCurrencyItem(BaseModel):
     token: Optional[str] = None
     amount: int
     end_amount: Optional[int] = None
 
 
-class ConsiderationCurrencyItem(CurrencyItem):
+class ConsiderationCurrencyItem(OfferCurrencyItem):
     recipient: Optional[str] = None
 
 
-class BasicErc721Item(BaseModel):
+class BasicOfferErc721Item(BaseModel):
     item_type = ItemType.ERC721
     token: str
     identifier: int
 
 
-class Erc721ItemWithCriteria(BaseModel):
+class OfferErc721ItemWithCriteria(BaseModel):
     item_type = ItemType.ERC721_WITH_CRITERIA
     token: str
     identifiers: list[int]
@@ -116,19 +116,19 @@ class Erc721ItemWithCriteria(BaseModel):
     end_amount: Optional[int]
 
 
-Erc721Item = Union[BasicErc721Item, Erc721ItemWithCriteria]
+OfferErc721Item = Union[BasicOfferErc721Item, OfferErc721ItemWithCriteria]
 
 
-class BasicConsiderationErc721Item(BasicErc721Item):
+class BasicConsiderationErc721Item(BasicOfferErc721Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationErc721ItemWithCriteria(Erc721ItemWithCriteria):
+class BasicConsiderationOfferErc721ItemWithCriteria(OfferErc721ItemWithCriteria):
     recipient: Optional[str] = None
 
 
 ConsiderationErc721Item = Union[
-    BasicConsiderationErc721Item, BasicConsiderationErc721ItemWithCriteria
+    BasicConsiderationErc721Item, BasicConsiderationOfferErc721ItemWithCriteria
 ]
 
 
@@ -148,7 +148,7 @@ class Erc1155ItemWithCriteria(BaseModel):
     end_amount: Optional[int] = None
 
 
-Erc1155Item = Union[BasicErc1155Item, Erc1155ItemWithCriteria]
+OfferErc1155Item = Union[BasicErc1155Item, Erc1155ItemWithCriteria]
 
 
 class BasicConsiderationErc1155Item(BasicErc1155Item):
@@ -164,7 +164,7 @@ ConsiderationErc1155Item = Union[
 ]
 
 
-CreateInputItem = Union[Erc721Item, Erc1155Item, CurrencyItem]
+CreateInputItem = Union[OfferErc721Item, OfferErc1155Item, OfferCurrencyItem]
 
 ConsiderationInputItem = Union[
     ConsiderationErc721Item, ConsiderationErc1155Item, ConsiderationCurrencyItem

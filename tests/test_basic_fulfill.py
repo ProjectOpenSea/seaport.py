@@ -1,16 +1,9 @@
 from web3 import Web3
 from consideration.consideration import Consideration
-from consideration.constants import (
-    MAX_INT,
-)
 from consideration.types import (
-    BasicConsiderationErc721Item,
-    BasicErc721Item,
+    BasicOfferErc721Item,
     ConsiderationCurrencyItem,
-    ConsiderationErc721Item,
-    Erc721Item,
 )
-from consideration.utils.order import generate_random_salt
 
 nft_id = 1
 
@@ -19,7 +12,7 @@ def test_erc721_buy_now(consideration: Consideration, erc721, offerer, zone, ful
     erc721.mint(offerer, nft_id)
     use_case = consideration.create_order(
         account_address=offerer.address,
-        offer=[BasicErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"), recipient=offerer.address

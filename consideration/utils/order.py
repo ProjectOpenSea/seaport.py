@@ -11,12 +11,12 @@ from consideration.constants import (
 )
 from consideration.types import (
     BalancesAndApprovals,
-    BasicErc721Item,
+    BasicOfferErc721Item,
     BasicErc1155Item,
     ConsiderationItem,
     CreateInputItem,
-    CurrencyItem,
-    Erc721ItemWithCriteria,
+    OfferCurrencyItem,
+    OfferErc721ItemWithCriteria,
     Erc1155ItemWithCriteria,
     Fee,
     InputCriteria,
@@ -80,9 +80,9 @@ def deduct_fees(consideration: list[ConsiderationItem], fees: list[Fee] = []):
 
 def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
     # Item is an NFT
-    if not isinstance(item, CurrencyItem):
+    if not isinstance(item, OfferCurrencyItem):
         # Item is a criteria based item
-        if isinstance(item, Erc721ItemWithCriteria) or isinstance(
+        if isinstance(item, OfferErc721ItemWithCriteria) or isinstance(
             item, Erc1155ItemWithCriteria
         ):
             # Convert this into a criteria based item
@@ -93,7 +93,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
                 startAmount=item.amount or 1,
                 endAmount=item.end_amount or item.amount or 1,
             )
-        elif isinstance(item, BasicErc721Item):
+        elif isinstance(item, BasicOfferErc721Item):
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
