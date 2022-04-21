@@ -4,6 +4,8 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.sortImports.args": ["--profile", "black"],
+  "editor.formatOnSave": true,
+  "python.analysis.typeCheckingMode": "basic",
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.organizeImports": true
