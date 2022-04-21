@@ -1,5 +1,8 @@
 import pytest
+from eth_utils.currency import to_wei
 from web3 import Web3
+from web3.constants import ADDRESS_ZERO
+
 from consideration.consideration import Consideration
 from consideration.constants import (
     LEGACY_PROXY_CONDUIT,
@@ -11,18 +14,16 @@ from consideration.constants import (
 from consideration.types import (
     ApprovalAction,
     BasicConsiderationErc721Item,
-    BasicOfferErc1155Item,
     BasicOfferErc721Item,
+    BasicOfferErc1155Item,
     ConsiderationConfig,
     ConsiderationCurrencyItem,
     ContractOverrides,
     CreateOrderAction,
-    OfferCurrencyItem,
     Fee,
+    OfferCurrencyItem,
 )
 from consideration.utils.order import generate_random_salt
-from eth_utils.currency import to_wei
-from web3.constants import ADDRESS_ZERO
 
 nft_id = 1
 start_time = 0

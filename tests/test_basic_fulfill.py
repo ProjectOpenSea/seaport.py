@@ -1,17 +1,17 @@
 import pytest
 from web3 import Web3
+from web3.constants import ADDRESS_ZERO
+
 from consideration.consideration import Consideration
 from consideration.constants import LEGACY_PROXY_CONDUIT, ItemType
 from consideration.types import (
-    BasicConsiderationErc1155Item,
     BasicConsiderationErc721Item,
-    BasicOfferErc1155Item,
+    BasicConsiderationErc1155Item,
     BasicOfferErc721Item,
+    BasicOfferErc1155Item,
     ConsiderationCurrencyItem,
     OfferCurrencyItem,
 )
-from web3.constants import ADDRESS_ZERO
-
 
 nft_id = 1
 

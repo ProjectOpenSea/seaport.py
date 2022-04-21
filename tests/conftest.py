@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from time import sleep
+
 import pytest
 from brownie.network.account import Accounts, _PrivateKeyAccount
 from web3 import Web3

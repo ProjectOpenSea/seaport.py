@@ -1,4 +1,5 @@
 from enum import Enum, auto
+
 from web3.constants import ADDRESS_ZERO
 
 CONSIDERATION_CONTRACT_NAME = "Consideration"

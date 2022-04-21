@@ -8,11 +8,11 @@ from typing import (
     Union,
     runtime_checkable,
 )
-from typing_extensions import NotRequired
 
 from eth_typing.evm import ChecksumAddress
 from hexbytes import HexBytes
 from pydantic import BaseModel
+from typing_extensions import NotRequired
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.types import TxParams

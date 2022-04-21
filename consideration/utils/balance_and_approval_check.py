@@ -1,19 +1,15 @@
 from typing import Literal, Optional, Sequence, Union
+
 from pydantic import BaseModel
 from web3 import Web3
-from web3.contract import Contract
 from web3.constants import ADDRESS_ZERO
+from web3.contract import Contract
+
 from consideration.abi.ERC20 import ERC20_ABI
 from consideration.abi.ERC721 import ERC721_ABI
-from consideration.types import ApprovalAction, Item, TransactionMethods
-
-
-from consideration.constants import (
-    LEGACY_PROXY_CONDUIT,
-    MAX_INT,
-    ProxyStrategy,
-)
+from consideration.constants import LEGACY_PROXY_CONDUIT, MAX_INT, ProxyStrategy
 from consideration.types import (
+    ApprovalAction,
     BalanceAndApproval,
     BalancesAndApprovals,
     ConsiderationItem,
@@ -24,16 +20,17 @@ from consideration.types import (
     InsufficientBalances,
     Item,
     OfferItem,
+    TransactionMethods,
 )
 from consideration.utils.balance import balance_of
 from consideration.utils.item import (
     TimeBasedItemParams,
     TokenAndIdentifierAmounts,
+    get_item_index_to_criteria_map,
     get_summed_token_and_identifier_amounts,
-    is_erc1155_item,
     is_erc20_item,
     is_erc721_item,
-    get_item_index_to_criteria_map,
+    is_erc1155_item,
 )
 from consideration.utils.usecase import get_transaction_methods
 

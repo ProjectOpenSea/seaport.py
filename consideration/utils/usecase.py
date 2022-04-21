@@ -1,4 +1,8 @@
 from typing import Optional, Union
+
+from web3.contract import ContractFunction
+from web3.types import TxParams
+
 from consideration.types import (
     ApprovalAction,
     CreateOrderAction,
@@ -6,8 +10,6 @@ from consideration.types import (
     OrderExchangeActions,
     TransactionMethods,
 )
-from web3.contract import ContractFunction
-from web3.types import TxParams
 
 
 def execute_all_actions(

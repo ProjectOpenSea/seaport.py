@@ -2,7 +2,9 @@ from itertools import chain
 from secrets import token_hex
 from typing import Optional, Sequence, Union, cast
 
+from web3.constants import ADDRESS_ZERO
 from web3.contract import Contract
+
 from consideration.constants import (
     ONE_HUNDRED_PERCENT_BP,
     ItemType,
@@ -15,12 +17,12 @@ from consideration.types import (
     BasicOfferErc1155Item,
     ConsiderationItem,
     CreateInputItem,
-    OfferCurrencyItem,
-    OfferErc721ItemWithCriteria,
-    OfferErc1155ItemWithCriteria,
     Fee,
     InputCriteria,
     Item,
+    OfferCurrencyItem,
+    OfferErc721ItemWithCriteria,
+    OfferErc1155ItemWithCriteria,
     OfferItem,
     Order,
     OrderParameters,
@@ -33,7 +35,6 @@ from consideration.utils.item import (
     get_maximum_size_for_order,
     is_currency_item,
 )
-from web3.constants import ADDRESS_ZERO
 
 
 def multiply_basis_points(amount: int, basis_points: int) -> int:
