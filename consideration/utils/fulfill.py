@@ -289,7 +289,7 @@ def fulfill_basic_order(
         # this represents both the usual order type as well as the "route"
         # of the basic order (a simple derivation function for the basic order
         # type is `basicOrderType = orderType + (4 * basicOrderRoute)`.)
-        "basicOrderType": order.parameters.orderType + 4 * basic_order_route_type.value,
+        "basicOrderType": order.parameters.orderType + 4 * basic_order_route_type.value,  # type: ignore
         "offerToken": offer_item.token,
         "offerIdentifier": offer_item.identifierOrCriteria,
         "offerAmount": offer_item.endAmount,

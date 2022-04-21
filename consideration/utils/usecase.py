@@ -40,6 +40,7 @@ def get_transaction_methods(
 
     def transact(transaction: Optional[TxParams] = {}):
         transaction = transaction or {}
+
         return contract_fn.transact(initial_tx_params | transaction)
 
     def build_transaction(transaction: Optional[TxParams] = {}):
