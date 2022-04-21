@@ -20,6 +20,7 @@ from consideration.types import (
     ConsiderationItem,
     ExchangeAction,
     FulfillOrderUseCase,
+    InputCriteria,
     Order,
     OrderParameters,
     OrderStatus,
@@ -28,15 +29,24 @@ from consideration.utils.balance_and_approval_check import (
     get_approval_actions,
     use_proxy_from_approvals,
     validate_basic_fulfill_balances_and_approvals,
+    validate_standard_fulfill_balances_and_approvals,
 )
+from consideration.utils.gcd import gcd
 from consideration.utils.item import (
     TimeBasedItemParams,
+    generate_criteria_resolvers,
+    get_maximum_size_for_order,
     get_summed_token_and_identifier_amounts,
     is_criteria_item,
     is_currency_item,
     is_native_currency_item,
 )
-from consideration.utils.order import are_all_currencies_same, total_items_amount
+from consideration.utils.order import (
+    are_all_currencies_same,
+    map_order_amounts_from_filled_status,
+    map_order_amounts_from_units_to_fill,
+    total_items_amount,
+)
 from consideration.utils.usecase import execute_all_actions, get_transaction_methods
 
 
@@ -314,6 +324,176 @@ def fulfill_basic_order(
             consideration_contract.functions.fulfillBasicOrder(basic_order_parameters),
             payable_overrides,
         ),
+    )
+
+    actions = list(chain(approval_actions, [exchange_action]))
+
+    return FulfillOrderUseCase(
+        actions=actions,
+        execute_all_actions=lambda: cast(HexBytes, execute_all_actions(actions)),
+    )
+
+
+def fulfill_standard_order(
+    *,
+    order: Order,
+    units_to_fill: int = 0,
+    total_size: int,
+    total_filled: int,
+    offer_criteria: list[InputCriteria],
+    consideration_criteria: list[InputCriteria],
+    tips: list[ConsiderationItem],
+    extra_data: str = "0x",
+    consideration_contract: Contract,
+    offerer_balances_and_approvals: BalancesAndApprovals,
+    fulfiller_balances_and_approvals: BalancesAndApprovals,
+    time_based_item_params: TimeBasedItemParams,
+    offerer_proxy: str,
+    fulfiller_proxy: str,
+    proxy_strategy: ProxyStrategy,
+    fulfiller: str,
+    web3: Web3
+):
+    # If we are supplying units to fill, we adjust the order by the minimum of the amount to fill and
+    # the remaining order left to be fulfilled
+    order_with_adjusted_fills = (
+        map_order_amounts_from_units_to_fill(
+            order=order,
+            units_to_fill=units_to_fill,
+            total_filled=total_filled,
+            total_size=total_size,
+        )
+        if units_to_fill
+        # Else, we adjust the order by the remaining order left to be fulfilled
+        else map_order_amounts_from_filled_status(
+            order=order, total_filled=total_filled, total_size=total_size
+        )
+    )
+
+    offer = order_with_adjusted_fills.parameters.offer
+    consideration = order_with_adjusted_fills.parameters.consideration
+    conduit = order_with_adjusted_fills.parameters.conduit
+
+    consideration_including_tips = list(chain(consideration, tips))
+
+    total_native_amount = total_native_amount = (
+        get_summed_token_and_identifier_amounts(
+            items=consideration_including_tips,
+            criterias=consideration_criteria,
+            time_based_item_params=time_based_item_params.copy(
+                update={"is_consideration_item": True}
+            ),
+        )
+        .get(ADDRESS_ZERO, {})
+        .get(0, 0)
+    )
+
+    insufficient_approvals = validate_standard_fulfill_balances_and_approvals(
+        offer=offer,
+        conduit=conduit,
+        consideration=consideration_including_tips,
+        offer_criteria=offer_criteria,
+        consideration_criteria=consideration_criteria,
+        offerer_balances_and_approvals=offerer_balances_and_approvals,
+        fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
+        time_based_item_params=time_based_item_params,
+        consideration_contract=consideration_contract,
+        offerer_proxy=offerer_proxy,
+        fulfiller_proxy=fulfiller_proxy,
+        proxy_strategy=proxy_strategy,
+    )
+
+    use_proxy_for_fulfiller = use_proxy_from_approvals(
+        insufficient_owner_approvals=insufficient_approvals.insufficient_owner_approvals,
+        insufficient_proxy_approvals=insufficient_approvals.insufficient_proxy_approvals,
+        proxy_strategy=proxy_strategy,
+    )
+
+    approvals_to_use = (
+        insufficient_approvals.insufficient_proxy_approvals
+        if use_proxy_for_fulfiller
+        else insufficient_approvals.insufficient_owner_approvals
+    )
+
+    offer_criteria_items = list(
+        filter(lambda item: is_criteria_item(item.itemType), offer)
+    )
+
+    consideration_criteria_items = list(
+        filter(
+            lambda item: is_criteria_item(item.itemType), consideration_including_tips
+        )
+    )
+
+    has_criteria_items = offer_criteria_items or consideration_criteria_items
+
+    if len(offer_criteria_items) != len(offer_criteria) or len(
+        consideration_criteria_items
+    ) != len(consideration_criteria):
+        raise Exception(
+            "You must supply the appropriate criterias for criteria based items"
+        )
+
+    approval_actions = get_approval_actions(
+        insufficient_approvals=approvals_to_use, web3=web3, account_address=fulfiller
+    )
+
+    use_advanced = bool(units_to_fill) or has_criteria_items
+
+    # Used for advanced order cases
+    max_units = get_maximum_size_for_order(order)
+
+    # Reduce the numerator/denominator as optimization
+    units_gcd = gcd(units_to_fill, max_units)
+
+    numerator = units_to_fill // units_gcd if units_to_fill else 1
+    denominator = max_units // units_gcd if units_to_fill else 1
+
+    order_accounting_for_tips = order.copy(
+        update={
+            "parameters": order.parameters.copy(
+                update={
+                    "consideration": list(chain(order.parameters.consideration, tips)),
+                    "totalOriginalConsiderationItems": len(consideration),
+                }
+            )
+        }
+    )
+
+    fulfiller_conduit = LEGACY_PROXY_CONDUIT if use_proxy_for_fulfiller else NO_CONDUIT
+
+    payable_overrides: TxParams = {
+        "value": Wei(total_native_amount),
+        "from": fulfiller,
+    }
+
+    exchange_action = ExchangeAction(
+        transaction_methods=get_transaction_methods(
+            consideration_contract.functions.fulfillAdvancedOrder(
+                {
+                    **order_accounting_for_tips.dict(),
+                    "numerator": numerator,
+                    "denominator": denominator,
+                    "extraData": extra_data,
+                },
+                generate_criteria_resolvers(
+                    orders=[order],
+                    offer_criterias=[offer_criteria],
+                    consideration_criterias=[consideration_criteria],
+                )
+                if has_criteria_items
+                else [],
+                fulfiller_conduit,
+            ),
+            payable_overrides,
+        )
+        if use_advanced
+        else get_transaction_methods(
+            consideration_contract.functions.fulfillOrder(
+                order_accounting_for_tips.dict(), fulfiller_conduit
+            ),
+            payable_overrides,
+        )
     )
 
     actions = list(chain(approval_actions, [exchange_action]))

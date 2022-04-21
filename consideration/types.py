@@ -17,7 +17,7 @@ from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.types import TxParams
 
-from consideration.constants import ItemType, OrderType, ProxyStrategy
+from consideration.constants import ItemType, OrderType, ProxyStrategy, Side
 from consideration.utils.pydantic import BaseModelWithEnumValues
 
 
@@ -297,6 +297,14 @@ class CreateOrderUseCase(BaseModel):
 class FulfillOrderUseCase(BaseModel):
     actions: OrderExchangeActions
     execute_all_actions: Callable[[], HexBytes]
+
+
+class CriteriaResolver(BaseModelWithEnumValues):
+    order_index: int
+    side: Side
+    index: int
+    identifier: int
+    criteria_proof: list[str]
 
 
 # export type FulfillmentComponent = {

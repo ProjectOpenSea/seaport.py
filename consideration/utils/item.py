@@ -1,11 +1,18 @@
 from collections import deque
 from itertools import chain
-from typing import Optional, Sequence
+from typing import Literal, Optional, Sequence, Union
 
 from pydantic import BaseModel
 
-from consideration.constants import ItemType
-from consideration.types import InputCriteria, Item, Order
+from consideration.constants import ItemType, Side
+from consideration.types import (
+    ConsiderationItem,
+    CriteriaResolver,
+    InputCriteria,
+    Item,
+    OfferItem,
+    Order,
+)
 from consideration.utils.gcd import find_gcd
 
 
@@ -143,6 +150,70 @@ def get_maximum_size_for_order(order: Order):
     return find_gcd(amounts)
 
 
+def generate_criteria_resolvers(
+    orders: list[Order],
+    offer_criterias: list[list[InputCriteria]] = [[]],
+    consideration_criterias: list[list[InputCriteria]] = [[]],
+) -> list[CriteriaResolver]:
+    offer_criteria_items: list[tuple[int, OfferItem, int, Literal[Side.OFFER]]] = []
+    consideration_criteria_items: list[
+        tuple[int, ConsiderationItem, int, Literal[Side.CONSIDERATION]]
+    ] = []
+
+    for order_index, order in enumerate(orders):
+        for index, item in enumerate(
+            filter(lambda item: is_criteria_item(item.itemType), order.parameters.offer)
+        ):
+            offer_criteria_items.append((order_index, item, index, Side.OFFER))
+
+    for order_index, order in enumerate(orders):
+        for index, item in enumerate(
+            filter(
+                lambda item: is_criteria_item(item.itemType),
+                order.parameters.consideration,
+            )
+        ):
+            consideration_criteria_items.append(
+                (order_index, item, index, Side.CONSIDERATION)
+            )
+
+    def map_criteria_items_to_resolver(
+        criteria_items: Union[
+            list[tuple[int, OfferItem, int, Literal[Side.OFFER]]],
+            list[tuple[int, ConsiderationItem, int, Literal[Side.CONSIDERATION]]],
+        ],
+        criterias: list[list[InputCriteria]],
+    ):
+        criteria_resolvers: list[CriteriaResolver] = []
+
+        for i, (order_index, item, index, side) in enumerate(criteria_items):
+            merkle_root = item.identifierOrCriteria or "0"
+            input_criteria = criterias[order_index][i]
+            leaves = list(map(hash_identifier, input_criteria.valid_identifiers or []))
+            tree = []
+            criteria_proof = []
+
+            criteria_resolvers.append(
+                CriteriaResolver(
+                    order_index=order_index,
+                    side=side,
+                    index=index,
+                    identifier=input_criteria.identifier,
+                    criteria_proof=[],
+                )
+            )
+
+        return criteria_resolvers
+
+    criteria_resolvers = map_criteria_items_to_resolver(
+        offer_criteria_items, offer_criterias
+    ) + map_criteria_items_to_resolver(
+        consideration_criteria_items, consideration_criterias
+    )
+
+    return criteria_resolvers
+
+
 def get_item_index_to_criteria_map(
     items: Sequence[Item], criterias: list[InputCriteria]
 ):
@@ -153,3 +224,7 @@ def get_item_index_to_criteria_map(
             criteria_map[index] = criterias_copy.popleft()
 
     return criteria_map
+
+
+def hash_identifier(identifier: int):
+    return hex(identifier)[2:].zfill(64)

@@ -58,6 +58,7 @@ def approved_item_amount(owner: str, item: Item, operator: str, web3: Web3) -> i
 
 
 def get_approval_actions(
+    *,
     insufficient_approvals: InsufficientApprovals,
     web3: Web3,
     account_address: Optional[str] = None,
