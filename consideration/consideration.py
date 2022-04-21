@@ -267,7 +267,9 @@ class Consideration:
 
         approval_actions = (
             get_approval_actions(
-                insufficient_approvals=insufficient_approvals, web3=self.web3
+                insufficient_approvals=insufficient_approvals,
+                web3=self.web3,
+                account_address=offerer,
             )
             if check_balances_and_approvals
             else []

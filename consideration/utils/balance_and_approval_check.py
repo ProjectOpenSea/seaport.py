@@ -470,7 +470,8 @@ def validate_standard_fulfill_balances_and_approvals(
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
     consideration_contract: Contract,
-    proxy: str,
+    offerer_proxy: str,
+    fulfiller_proxy: str,
     proxy_strategy: ProxyStrategy,
 ):
     validate_offer_balances_and_approvals(
@@ -481,7 +482,7 @@ def validate_standard_fulfill_balances_and_approvals(
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
         consideration_contract=consideration_contract,
-        proxy=proxy,
+        proxy=offerer_proxy,
         proxy_strategy=proxy_strategy,
     )
 
@@ -530,7 +531,7 @@ def validate_standard_fulfill_balances_and_approvals(
             else None,
         ),
         consideration_contract=consideration_contract,
-        proxy=proxy,
+        proxy=fulfiller_proxy,
         proxy_strategy=proxy_strategy,
     )
 

@@ -308,7 +308,9 @@ def fulfill_basic_order(
 
     payable_overrides: TxParams = {"value": Wei(total_native_amount), "from": fulfiller}
     approval_actions = get_approval_actions(
-        insufficient_approvals=approvals_to_use, web3=web3
+        insufficient_approvals=approvals_to_use,
+        web3=web3,
+        account_address=fulfiller,
     )
     exchange_action = ExchangeAction(
         transaction_methods=get_transaction_methods(
