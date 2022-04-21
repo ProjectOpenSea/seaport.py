@@ -11,7 +11,7 @@ from consideration.constants import (
 from consideration.types import (
     ApprovalAction,
     BasicConsiderationErc721Item,
-    BasicErc1155Item,
+    BasicOfferErc1155Item,
     BasicOfferErc721Item,
     ConsiderationConfig,
     ConsiderationCurrencyItem,
@@ -221,7 +221,7 @@ def test_create_order_offer_erc20_and_erc1155(
         salt=salt,
         offer=[
             BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
-            BasicErc1155Item(token=erc1155.address, identifier=nft_id, amount=1),
+            BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1),
         ],
         consideration=[ConsiderationCurrencyItem(amount=to_wei(10, "ether"))],
         fees=[Fee(recipient=zone.address, basis_points=250)],

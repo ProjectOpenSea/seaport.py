@@ -132,7 +132,7 @@ ConsiderationErc721Item = Union[
 ]
 
 
-class BasicErc1155Item(BaseModel):
+class BasicOfferErc1155Item(BaseModel):
     item_type = ItemType.ERC1155
     token: str
     identifier: int
@@ -140,7 +140,7 @@ class BasicErc1155Item(BaseModel):
     end_amount: Optional[int] = None
 
 
-class Erc1155ItemWithCriteria(BaseModel):
+class OfferErc1155ItemWithCriteria(BaseModel):
     item_type = ItemType.ERC1155_WITH_CRITERIA
     token: str
     identifiers: list[int]
@@ -148,14 +148,14 @@ class Erc1155ItemWithCriteria(BaseModel):
     end_amount: Optional[int] = None
 
 
-OfferErc1155Item = Union[BasicErc1155Item, Erc1155ItemWithCriteria]
+OfferErc1155Item = Union[BasicOfferErc1155Item, OfferErc1155ItemWithCriteria]
 
 
-class BasicConsiderationErc1155Item(BasicErc1155Item):
+class BasicConsiderationErc1155Item(BasicOfferErc1155Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationErc1155ItemWithCriteria(Erc1155ItemWithCriteria):
+class BasicConsiderationErc1155ItemWithCriteria(OfferErc1155ItemWithCriteria):
     recipient: Optional[str] = None
 
 

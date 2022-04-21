@@ -12,12 +12,12 @@ from consideration.constants import (
 from consideration.types import (
     BalancesAndApprovals,
     BasicOfferErc721Item,
-    BasicErc1155Item,
+    BasicOfferErc1155Item,
     ConsiderationItem,
     CreateInputItem,
     OfferCurrencyItem,
     OfferErc721ItemWithCriteria,
-    Erc1155ItemWithCriteria,
+    OfferErc1155ItemWithCriteria,
     Fee,
     InputCriteria,
     Item,
@@ -83,7 +83,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
     if not isinstance(item, OfferCurrencyItem):
         # Item is a criteria based item
         if isinstance(item, OfferErc721ItemWithCriteria) or isinstance(
-            item, Erc1155ItemWithCriteria
+            item, OfferErc1155ItemWithCriteria
         ):
             # Convert this into a criteria based item
             return OfferItem(
@@ -101,7 +101,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
                 startAmount=1,
                 endAmount=1,
             )
-        elif isinstance(item, BasicErc1155Item):
+        elif isinstance(item, BasicOfferErc1155Item):
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
