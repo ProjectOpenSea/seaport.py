@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Callable,
     Literal,
     Optional,
@@ -90,23 +91,23 @@ class AdvancedOrder(Order):
     denominator: int
 
 
-class CurrencyItem(BaseModel):
+class OfferCurrencyItem(BaseModel):
     token: Optional[str] = None
     amount: int
     end_amount: Optional[int] = None
 
 
-class ConsiderationCurrencyItem(CurrencyItem):
+class ConsiderationCurrencyItem(OfferCurrencyItem):
     recipient: Optional[str] = None
 
 
-class BasicErc721Item(BaseModel):
+class BasicOfferErc721Item(BaseModel):
     item_type = ItemType.ERC721
     token: str
     identifier: int
 
 
-class Erc721ItemWithCriteria(BaseModel):
+class OfferErc721ItemWithCriteria(BaseModel):
     item_type = ItemType.ERC721_WITH_CRITERIA
     token: str
     identifiers: list[int]
@@ -115,23 +116,23 @@ class Erc721ItemWithCriteria(BaseModel):
     end_amount: Optional[int]
 
 
-Erc721Item = Union[BasicErc721Item, Erc721ItemWithCriteria]
+OfferErc721Item = Union[BasicOfferErc721Item, OfferErc721ItemWithCriteria]
 
 
-class BasicConsiderationErc721Item(BasicErc721Item):
+class BasicConsiderationErc721Item(BasicOfferErc721Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationErc721ItemWithCriteria(Erc721ItemWithCriteria):
+class BasicConsiderationOfferErc721ItemWithCriteria(OfferErc721ItemWithCriteria):
     recipient: Optional[str] = None
 
 
 ConsiderationErc721Item = Union[
-    BasicConsiderationErc721Item, BasicConsiderationErc721ItemWithCriteria
+    BasicConsiderationErc721Item, BasicConsiderationOfferErc721ItemWithCriteria
 ]
 
 
-class BasicErc1155Item(BaseModel):
+class BasicOfferErc1155Item(BaseModel):
     item_type = ItemType.ERC1155
     token: str
     identifier: int
@@ -139,7 +140,7 @@ class BasicErc1155Item(BaseModel):
     end_amount: Optional[int] = None
 
 
-class Erc1155ItemWithCriteria(BaseModel):
+class OfferErc1155ItemWithCriteria(BaseModel):
     item_type = ItemType.ERC1155_WITH_CRITERIA
     token: str
     identifiers: list[int]
@@ -147,14 +148,14 @@ class Erc1155ItemWithCriteria(BaseModel):
     end_amount: Optional[int] = None
 
 
-Erc1155Item = Union[BasicErc1155Item, Erc1155ItemWithCriteria]
+OfferErc1155Item = Union[BasicOfferErc1155Item, OfferErc1155ItemWithCriteria]
 
 
-class BasicConsiderationErc1155Item(BasicErc1155Item):
+class BasicConsiderationErc1155Item(BasicOfferErc1155Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationErc1155ItemWithCriteria(Erc1155ItemWithCriteria):
+class BasicConsiderationErc1155ItemWithCriteria(OfferErc1155ItemWithCriteria):
     recipient: Optional[str] = None
 
 
@@ -163,7 +164,7 @@ ConsiderationErc1155Item = Union[
 ]
 
 
-CreateInputItem = Union[Erc721Item, Erc1155Item, CurrencyItem]
+CreateInputItem = Union[OfferErc721Item, OfferErc1155Item, OfferCurrencyItem]
 
 ConsiderationInputItem = Union[
     ConsiderationErc721Item, ConsiderationErc1155Item, ConsiderationCurrencyItem
@@ -228,20 +229,34 @@ InsufficientApprovals = list[InsufficientApproval]
 
 
 @runtime_checkable
-class Transact(Protocol):
-    def __call__(self, transaction: Optional[TxParams] = None) -> HexBytes:
-        ...
-
-
-@runtime_checkable
 class BuildTransaction(Protocol):
     def __call__(self, transaction: Optional[TxParams] = None) -> TxParams:
         ...
 
 
-class Transaction(BaseModel):
-    transact: Transact
+@runtime_checkable
+class CallStatic(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> Any:
+        ...
+
+
+@runtime_checkable
+class EstimateGas(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> int:
+        ...
+
+
+@runtime_checkable
+class Transact(Protocol):
+    def __call__(self, transaction: Optional[TxParams] = None) -> HexBytes:
+        ...
+
+
+class TransactionMethods(BaseModel):
     build_transaction: BuildTransaction
+    call_static: CallStatic
+    estimate_gas: EstimateGas
+    transact: Transact
 
     class Config:
         arbitrary_types_allowed = True
@@ -262,12 +277,12 @@ class ApprovalAction(BaseModelWithEnumValues):
     identifier_or_criteria: int
     item_type: ItemType
     operator: str
-    transaction: Transaction
+    transaction_methods: TransactionMethods
 
 
 class ExchangeAction(BaseModel):
     type = "exchange"
-    transaction: Transaction
+    transaction_methods: TransactionMethods
 
 
 CreateOrderActions = list[Union[ApprovalAction, CreateOrderAction]]

@@ -29,11 +29,15 @@ def consideration_contract(
 ):
     legacy_proxy_implementation = legacy_proxy_registry.delegateProxyImplementation()
 
-    return TestConsideration.deploy(
+    consideration = TestConsideration.deploy(
         legacy_proxy_registry.address,
         legacy_proxy_implementation,
         {"from": accounts[0]},
     )
+
+    legacy_proxy_registry.grantInitialAuthentication(consideration.address)
+
+    return consideration
 
 
 @pytest.fixture(scope="module")

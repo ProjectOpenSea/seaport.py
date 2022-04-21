@@ -1,6 +1,6 @@
 from itertools import chain
 from secrets import token_hex
-from typing import Optional, Union, cast
+from typing import Optional, Sequence, Union, cast
 
 from web3.contract import Contract
 from consideration.constants import (
@@ -11,13 +11,13 @@ from consideration.constants import (
 )
 from consideration.types import (
     BalancesAndApprovals,
-    BasicErc721Item,
-    BasicErc1155Item,
+    BasicOfferErc721Item,
+    BasicOfferErc1155Item,
     ConsiderationItem,
     CreateInputItem,
-    CurrencyItem,
-    Erc721ItemWithCriteria,
-    Erc1155ItemWithCriteria,
+    OfferCurrencyItem,
+    OfferErc721ItemWithCriteria,
+    OfferErc1155ItemWithCriteria,
     Fee,
     InputCriteria,
     Item,
@@ -34,18 +34,6 @@ from consideration.utils.item import (
     is_currency_item,
 )
 from web3.constants import ADDRESS_ZERO
-
-
-def get_order_type_from_options(
-    allow_partial_fills: bool, restricted_by_zone: bool, use_proxy: bool
-):
-    if allow_partial_fills:
-        return (
-            OrderType.PARTIAL_RESTRICTED
-            if restricted_by_zone
-            else OrderType.PARTIAL_OPEN
-        )
-    return OrderType.FULL_RESTRICTED if restricted_by_zone else OrderType.FULL_OPEN
 
 
 def multiply_basis_points(amount: int, basis_points: int) -> int:
@@ -92,10 +80,10 @@ def deduct_fees(consideration: list[ConsiderationItem], fees: list[Fee] = []):
 
 def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
     # Item is an NFT
-    if not isinstance(item, CurrencyItem):
+    if not isinstance(item, OfferCurrencyItem):
         # Item is a criteria based item
-        if isinstance(item, Erc721ItemWithCriteria) or isinstance(
-            item, Erc1155ItemWithCriteria
+        if isinstance(item, OfferErc721ItemWithCriteria) or isinstance(
+            item, OfferErc1155ItemWithCriteria
         ):
             # Convert this into a criteria based item
             return OfferItem(
@@ -105,7 +93,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
                 startAmount=item.amount or 1,
                 endAmount=item.end_amount or item.amount or 1,
             )
-        elif isinstance(item, BasicErc721Item):
+        elif isinstance(item, BasicOfferErc721Item):
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
@@ -113,7 +101,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
                 startAmount=1,
                 endAmount=1,
             )
-        elif isinstance(item, BasicErc1155Item):
+        elif isinstance(item, BasicOfferErc1155Item):
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
@@ -148,38 +136,7 @@ def are_all_currencies_same(
     )
 
 
-def validate_order_parameters(
-    *,
-    order_parameters: OrderParameters,
-    offer_criteria: list[InputCriteria],
-    balances_and_approvals: BalancesAndApprovals,
-    throw_on_insufficient_balances=False,
-    throw_on_insufficient_approvals=False,
-    consideration_contract: Contract,
-    proxy: str,
-    proxy_strategy: ProxyStrategy,
-    time_based_item_params: Optional[TimeBasedItemParams] = None
-):
-    if not are_all_currencies_same(
-        offer=order_parameters.offer, consideration=order_parameters.consideration
-    ):
-        raise ValueError("All currency tokens in the order must be the same token")
-
-    return validate_offer_balances_and_approvals(
-        offer=order_parameters.offer,
-        conduit=order_parameters.conduit,
-        criterias=offer_criteria,
-        balances_and_approvals=balances_and_approvals,
-        throw_on_insufficient_balances=throw_on_insufficient_balances,
-        throw_on_insufficient_approvals=throw_on_insufficient_approvals,
-        consideration_contract=consideration_contract,
-        proxy=proxy,
-        proxy_strategy=proxy_strategy,
-        time_based_item_params=time_based_item_params,
-    )
-
-
-def total_items_amount(items: list[Item]):
+def total_items_amount(items: Sequence[Item]):
     start_amount = 0
     end_amount = 0
 

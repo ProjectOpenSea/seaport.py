@@ -66,9 +66,9 @@ class BasicOrderRouteType(Enum):
     ETH_TO_ERC721 = 0
     ETH_TO_ERC1155 = 1
     ERC20_TO_ERC721 = 2
-    ERC20_TO_ERC1155 = 4
-    ERC721_TO_ERC20 = 5
-    ERC1155_TO_ERC20 = 6
+    ERC20_TO_ERC1155 = 3
+    ERC721_TO_ERC20 = 4
+    ERC1155_TO_ERC20 = 5
 
 
 class ProxyStrategy(Enum):

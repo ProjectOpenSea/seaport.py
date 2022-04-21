@@ -5,14 +5,12 @@ from web3.contract import Contract
 from web3.constants import ADDRESS_ZERO
 from consideration.abi.ERC20 import ERC20_ABI
 from consideration.abi.ERC721 import ERC721_ABI
-from consideration.types import ApprovalAction, Item, Transaction
+from consideration.types import ApprovalAction, Item, TransactionMethods
 
 
 from consideration.constants import (
     LEGACY_PROXY_CONDUIT,
     MAX_INT,
-    ItemType,
-    OrderType,
     ProxyStrategy,
 )
 from consideration.types import (
@@ -26,7 +24,6 @@ from consideration.types import (
     InsufficientBalances,
     Item,
     OfferItem,
-    OrderParameters,
 )
 from consideration.utils.balance import balance_of
 from consideration.utils.item import (
@@ -38,6 +35,7 @@ from consideration.utils.item import (
     is_erc721_item,
     get_item_index_to_criteria_map,
 )
+from consideration.utils.usecase import get_transaction_methods
 
 
 def approved_item_amount(owner: str, item: Item, operator: str, web3: Web3) -> int:
@@ -63,8 +61,12 @@ def approved_item_amount(owner: str, item: Item, operator: str, web3: Web3) -> i
 
 
 def get_approval_actions(
-    insufficient_approvals: InsufficientApprovals, web3: Web3
+    insufficient_approvals: InsufficientApprovals,
+    web3: Web3,
+    account_address: Optional[str] = None,
 ) -> list[ApprovalAction]:
+    from_account = account_address or web3.eth.accounts[0]
+
     def map_insufficient_approval_to_action(
         insufficient_approval: InsufficientApproval,
     ):
@@ -97,9 +99,8 @@ def get_approval_actions(
             identifier_or_criteria=insufficient_approval.identifier_or_criteria,
             item_type=insufficient_approval.item_type,
             operator=insufficient_approval.operator,
-            transaction=Transaction(
-                transact=contract_fn.transact,
-                build_transaction=contract_fn.buildTransaction,
+            transaction_methods=get_transaction_methods(
+                contract_fn, {"from": from_account}
             ),
         )
 
@@ -334,7 +335,7 @@ def validate_offer_balances_and_approvals(
     conduit: str,
     criterias: list[InputCriteria],
     balances_and_approvals: BalancesAndApprovals,
-    time_based_item_params: Optional[TimeBasedItemParams],
+    time_based_item_params: Optional[TimeBasedItemParams] = None,
     consideration_contract: Contract,
     proxy: str,
     proxy_strategy: ProxyStrategy,
@@ -402,7 +403,8 @@ def validate_basic_fulfill_balances_and_approvals(
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
     consideration_contract: Contract,
-    proxy: str,
+    offerer_proxy: str,
+    fulfiller_proxy: str,
     proxy_strategy: ProxyStrategy,
 ):
     validate_offer_balances_and_approvals(
@@ -413,7 +415,7 @@ def validate_basic_fulfill_balances_and_approvals(
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
         consideration_contract=consideration_contract,
-        proxy=proxy,
+        proxy=offerer_proxy,
         proxy_strategy=proxy_strategy,
     )
 
@@ -434,7 +436,7 @@ def validate_basic_fulfill_balances_and_approvals(
                 else None,
             ),
             consideration_contract=consideration_contract,
-            proxy=proxy,
+            proxy=fulfiller_proxy,
             proxy_strategy=proxy_strategy,
         )
     )
@@ -468,7 +470,8 @@ def validate_standard_fulfill_balances_and_approvals(
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
     consideration_contract: Contract,
-    proxy: str,
+    offerer_proxy: str,
+    fulfiller_proxy: str,
     proxy_strategy: ProxyStrategy,
 ):
     validate_offer_balances_and_approvals(
@@ -479,7 +482,7 @@ def validate_standard_fulfill_balances_and_approvals(
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
         consideration_contract=consideration_contract,
-        proxy=proxy,
+        proxy=offerer_proxy,
         proxy_strategy=proxy_strategy,
     )
 
@@ -528,7 +531,7 @@ def validate_standard_fulfill_balances_and_approvals(
             else None,
         ),
         consideration_contract=consideration_contract,
-        proxy=proxy,
+        proxy=fulfiller_proxy,
         proxy_strategy=proxy_strategy,
     )
 
