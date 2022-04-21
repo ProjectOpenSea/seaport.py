@@ -1,8 +1,8 @@
 from itertools import chain
 from time import time
 from typing import Optional, cast
-from hexbytes import HexBytes
 
+from hexbytes import HexBytes
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.contract import Contract
@@ -19,11 +19,6 @@ from consideration.constants import (
     MAX_INT,
     NO_CONDUIT,
     OrderType,
-)
-from consideration.utils.fulfill import (
-    fulfill_basic_order,
-    should_use_basic_fulfill,
-    validate_and_sanitize_from_order_status,
 )
 from consideration.types import (
     ConsiderationConfig,
@@ -48,6 +43,11 @@ from consideration.utils.balance_and_approval_check import (
     get_insufficient_balance_and_approval_amounts,
     use_proxy_from_approvals,
     validate_offer_balances_and_approvals,
+)
+from consideration.utils.fulfill import (
+    fulfill_basic_order,
+    should_use_basic_fulfill,
+    validate_and_sanitize_from_order_status,
 )
 from consideration.utils.hex_utils import bytes_to_hex
 from consideration.utils.item import (

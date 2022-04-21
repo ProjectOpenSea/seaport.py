@@ -1,9 +1,12 @@
 from itertools import chain
 from typing import cast
+
 from brownie import Wei
 from hexbytes import HexBytes
-
 from web3 import Web3
+from web3.constants import ADDRESS_ZERO
+from web3.contract import Contract
+from web3.types import TxParams
 
 from consideration.constants import (
     LEGACY_PROXY_CONDUIT,
@@ -21,9 +24,6 @@ from consideration.types import (
     OrderParameters,
     OrderStatus,
 )
-from web3.types import TxParams
-
-from consideration.utils.order import are_all_currencies_same, total_items_amount
 from consideration.utils.balance_and_approval_check import (
     get_approval_actions,
     use_proxy_from_approvals,
@@ -36,10 +36,7 @@ from consideration.utils.item import (
     is_currency_item,
     is_native_currency_item,
 )
-
-from web3.constants import ADDRESS_ZERO
-from web3.contract import Contract
-
+from consideration.utils.order import are_all_currencies_same, total_items_amount
 from consideration.utils.usecase import execute_all_actions, get_transaction_methods
 
 

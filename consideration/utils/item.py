@@ -2,11 +2,11 @@ from collections import deque
 from itertools import chain
 from typing import Optional, Sequence
 
+from pydantic import BaseModel
+
 from consideration.constants import ItemType
 from consideration.types import InputCriteria, Item, Order
 from consideration.utils.gcd import find_gcd
-
-from pydantic import BaseModel
 
 
 def is_currency_item(item_type: ItemType):
