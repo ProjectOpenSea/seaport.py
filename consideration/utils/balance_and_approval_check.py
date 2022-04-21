@@ -61,8 +61,12 @@ def approved_item_amount(owner: str, item: Item, operator: str, web3: Web3) -> i
 
 
 def get_approval_actions(
-    insufficient_approvals: InsufficientApprovals, web3: Web3
+    insufficient_approvals: InsufficientApprovals,
+    web3: Web3,
+    account_address: Optional[str] = None,
 ) -> list[ApprovalAction]:
+    from_account = account_address or web3.eth.accounts[0]
+
     def map_insufficient_approval_to_action(
         insufficient_approval: InsufficientApproval,
     ):
@@ -95,7 +99,9 @@ def get_approval_actions(
             identifier_or_criteria=insufficient_approval.identifier_or_criteria,
             item_type=insufficient_approval.item_type,
             operator=insufficient_approval.operator,
-            transaction_methods=get_transaction_methods(contract_fn),
+            transaction_methods=get_transaction_methods(
+                contract_fn, {"from": from_account}
+            ),
         )
 
     return list(map(map_insufficient_approval_to_action, insufficient_approvals))

@@ -10,17 +10,20 @@ from web3.contract import ContractFunction
 from web3.types import TxParams
 
 
-def execute_all_actions(actions: Union[CreateOrderActions, OrderExchangeActions]):
-    for action in range(len(actions) - 1):
+def execute_all_actions(
+    actions: Union[CreateOrderActions, OrderExchangeActions],
+    initial_tx_params: TxParams = {},
+):
+    for action in actions[:-1]:
         if isinstance(action, ApprovalAction):
-            action.transaction_methods.transact()
+            action.transaction_methods.transact(initial_tx_params)
 
     final_action = actions[-1]
 
     return (
         final_action.create_order()
         if isinstance(final_action, CreateOrderAction)
-        else final_action.transaction_methods.transact()
+        else final_action.transaction_methods.transact(initial_tx_params)
     )
 
 

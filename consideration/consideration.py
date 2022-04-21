@@ -1,6 +1,7 @@
 from itertools import chain
 from time import time
 from typing import Optional, cast
+from hexbytes import HexBytes
 
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
@@ -290,7 +291,7 @@ class Consideration:
         return CreateOrderUseCase(
             actions=actions,
             execute_all_actions=lambda: cast(
-                CreatedOrder, execute_all_actions(actions)
+                CreatedOrder, execute_all_actions(actions, {"from": offerer})
             ),
         )
 
@@ -441,77 +442,94 @@ class Consideration:
         order_components_partial_type_str = "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)"
         order_type_str = f"{order_components_partial_type_str}{consideration_item_type_string}{offer_item_type_string}"
         offer_item_type_hash = Web3.solidityKeccak(
-            offer_item_type_string.encode("utf-8")
-        )
+            abi_types=["bytes"], values=[offer_item_type_string.encode("utf-8")]
+        ).hex()
         consideration_item_type_hash = Web3.solidityKeccak(
-            offer_item_type_string.encode("utf-8")
-        )
-        order_type_hash = Web3.solidityKeccak(order_type_str.encode("utf-8"))
+            abi_types=["bytes"], values=[offer_item_type_string.encode("utf-8")]
+        ).hex()
+        order_type_hash = Web3.solidityKeccak(
+            abi_types=["bytes"], values=[order_type_str.encode("utf-8")]
+        ).hex()
 
         offer_hash = Web3.solidityKeccak(
-            "0x"
-            + "".join(
-                map(
-                    lambda item: Web3.solidityKeccak(
-                        "0x"
-                        + "".join(
-                            [
-                                offer_item_type_hash[2:],
-                                str(item.itemType).zfill(64),
-                                item.token[:2].zfill(64),
-                                hex(item.identifierOrCriteria)[:2].zfill(64),
-                                hex(item.startAmount)[:2].zfill(64),
-                                hex(item.endAmount)[:2].zfill(64),
-                            ]
-                        )
-                    )[:2],
-                    order_components.offer,
+            abi_types=["bytes"],
+            values=[
+                "0x"
+                + "".join(
+                    map(
+                        lambda item: Web3.solidityKeccak(
+                            abi_types=["bytes"],
+                            values=[
+                                "0x"
+                                + "".join(
+                                    [
+                                        offer_item_type_hash[2:],
+                                        str(item.itemType).zfill(64),
+                                        item.token[2:].zfill(64),
+                                        hex(item.identifierOrCriteria)[2:].zfill(64),
+                                        hex(item.startAmount)[2:].zfill(64),
+                                        hex(item.endAmount)[2:].zfill(64),
+                                    ]
+                                )
+                            ],
+                        ).hex()[2:],
+                        order_components.offer,
+                    )
                 )
-            )
-        )
+            ],
+        ).hex()
 
         consideration_hash = Web3.solidityKeccak(
-            "0x"
-            + "".join(
-                map(
-                    lambda item: Web3.solidityKeccak(
-                        "0x"
-                        + "".join(
-                            [
-                                consideration_item_type_hash[2:],
-                                str(item.itemType).zfill(64),
-                                item.token[:2].zfill(64),
-                                hex(item.identifierOrCriteria)[:2].zfill(64),
-                                hex(item.startAmount)[:2].zfill(64),
-                                hex(item.endAmount)[:2].zfill(64),
-                                item.recipient[:2].zfill(64),
-                            ]
-                        )
-                    )[:2],
-                    order_components.consideration,
+            abi_types=["bytes"],
+            values=[
+                "0x"
+                + "".join(
+                    map(
+                        lambda item: Web3.solidityKeccak(
+                            abi_types=["bytes"],
+                            values=[
+                                "0x"
+                                + "".join(
+                                    [
+                                        consideration_item_type_hash[2:],
+                                        str(item.itemType).zfill(64),
+                                        item.token[2:].zfill(64),
+                                        hex(item.identifierOrCriteria)[2:].zfill(64),
+                                        hex(item.startAmount)[2:].zfill(64),
+                                        hex(item.endAmount)[2:].zfill(64),
+                                        item.recipient[2:].zfill(64),
+                                    ]
+                                )
+                            ],
+                        ).hex()[2:],
+                        order_components.consideration,
+                    )
                 )
-            )
-        )
+            ],
+        ).hex()
 
         derived_order_hash = Web3.solidityKeccak(
-            "0x"
-            + "".join(
-                [
-                    order_type_hash[:2],
-                    order_components.offerer[:2].zfill(64),
-                    order_components.zone[:2].zfill(64),
-                    offer_hash[:2],
-                    consideration_hash[:2],
-                    str(order_components.orderType).zfill(64),
-                    hex(order_components.startTime)[:2].zfill(64),
-                    hex(order_components.endTime)[:2].zfill(64),
-                    hex(order_components.salt)[:2].zfill(64),
-                    hex(order_components.nonce)[:2].zfill(64),
-                ]
-            )
+            abi_types=["bytes"],
+            values=[
+                "0x"
+                + "".join(
+                    [
+                        order_type_hash[2:],
+                        order_components.offerer[2:].zfill(64),
+                        order_components.zone[2:].zfill(64),
+                        offer_hash[2:],
+                        consideration_hash[2:],
+                        str(order_components.orderType).zfill(64),
+                        hex(order_components.startTime)[2:].zfill(64),
+                        hex(order_components.endTime)[2:].zfill(64),
+                        hex(order_components.salt)[2:].zfill(64),
+                        hex(order_components.nonce)[2:].zfill(64),
+                    ]
+                )
+            ],
         )
 
-        return derived_order_hash
+        return derived_order_hash.hex()
 
     def fulfill_order(
         self,
@@ -521,9 +539,9 @@ class Consideration:
         offer_criteria: list[InputCriteria] = [],
         consideration_criteria: list[InputCriteria] = [],
         tips: list[ConsiderationInputItem] = [],
-        extra_data: Optional[str] = None,
+        extra_data: Optional[str] = "0x",
         account_address: Optional[str] = None,
-    ):
+    ) -> FulfillOrderUseCase:
         """
         Fulfills an order through either the basic method or the standard method
         Units to fill are denominated by the max possible size of the order, which is the greatest common denominator (GCD).
@@ -599,7 +617,9 @@ class Consideration:
                 time_based_item_params=time_based_item_params,
                 offerer_proxy=offerer_proxy,
                 fulfiller_proxy=fulfiller_proxy,
+                fulfiller=fulfiller,
                 proxy_strategy=self.config.proxy_strategy,
                 tips=tip_consideration_items,
                 web3=self.web3,
             )
+        return FulfillOrderUseCase(actions=[], execute_all_actions=lambda: HexBytes(1))

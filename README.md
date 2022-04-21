@@ -41,3 +41,9 @@ To run the tests:
 ```
 poetry run brownie test --network hardhat
 ```
+
+Running a single test:
+
+```
+poetry run brownie test --network hardhat -k test_basic_fulfill
+```

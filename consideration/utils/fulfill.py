@@ -168,19 +168,41 @@ def should_use_basic_fulfill(
 
 
 offer_and_consideration_fulfillment_mapping = {
-    ItemType.ERC20.value: {
-        ItemType.ERC721.value: BasicOrderRouteType.ERC721_TO_ERC20,
-        ItemType.ERC1155.value: BasicOrderRouteType.ERC1155_TO_ERC20,
+    ItemType.ERC20: {
+        ItemType.ERC721: BasicOrderRouteType.ERC721_TO_ERC20,
+        ItemType.ERC1155: BasicOrderRouteType.ERC1155_TO_ERC20,
     },
-    ItemType.ERC721.value: {
-        ItemType.NATIVE.value: BasicOrderRouteType.ETH_TO_ERC721,
-        ItemType.ERC20.value: BasicOrderRouteType.ERC20_TO_ERC721,
+    ItemType.ERC721: {
+        ItemType.NATIVE: BasicOrderRouteType.ETH_TO_ERC721,
+        ItemType.ERC20: BasicOrderRouteType.ERC20_TO_ERC721,
     },
-    ItemType.ERC1155.value: {
-        ItemType.NATIVE.value: BasicOrderRouteType.ETH_TO_ERC1155,
-        ItemType.ERC20.value: BasicOrderRouteType.ERC20_TO_ERC1155,
+    ItemType.ERC1155: {
+        ItemType.NATIVE: BasicOrderRouteType.ETH_TO_ERC1155,
+        ItemType.ERC20: BasicOrderRouteType.ERC20_TO_ERC1155,
     },
 }
+
+
+def get_basic_order_route_type(
+    offer_item_type: ItemType, consideration_item_type: ItemType
+):
+    if offer_item_type == ItemType.ERC20.value:
+        if consideration_item_type == ItemType.ERC721.value:
+            return BasicOrderRouteType.ERC721_TO_ERC20
+        elif consideration_item_type == ItemType.ERC1155.value:
+            return BasicOrderRouteType.ERC1155_TO_ERC20
+
+    if offer_item_type == ItemType.ERC721.value:
+        if consideration_item_type == ItemType.NATIVE.value:
+            return BasicOrderRouteType.ETH_TO_ERC721
+        elif consideration_item_type == ItemType.ERC20.value:
+            return BasicOrderRouteType.ERC20_TO_ERC721
+
+    if offer_item_type == ItemType.ERC1155.value:
+        if consideration_item_type == ItemType.NATIVE.value:
+            return BasicOrderRouteType.ETH_TO_ERC1155
+        elif consideration_item_type == ItemType.ERC20.value:
+            return BasicOrderRouteType.ERC20_TO_ERC1155
 
 
 def fulfill_basic_order(
@@ -189,6 +211,7 @@ def fulfill_basic_order(
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: TimeBasedItemParams,
+    fulfiller: str,
     offerer_proxy: str,
     fulfiller_proxy: str,
     proxy_strategy: ProxyStrategy,
@@ -199,9 +222,10 @@ def fulfill_basic_order(
     offer_item = order.parameters.offer[0]
     for_offerer, *for_additional_recipients = consideration_including_tips
 
-    basic_order_route_type = offer_and_consideration_fulfillment_mapping.get(
-        offer_item.itemType.value, {}
-    ).get(for_offerer.itemType.value, None)
+    basic_order_route_type = get_basic_order_route_type(
+        offer_item_type=offer_item.itemType,
+        consideration_item_type=for_offerer.itemType,
+    )
 
     if not basic_order_route_type:
         raise Exception("Order parameters did not result in a valid basic fulfillment")
@@ -282,7 +306,7 @@ def fulfill_basic_order(
         "zoneHash": order.parameters.zoneHash,
     }
 
-    payable_overrides: TxParams = {"value": Wei(total_native_amount)}
+    payable_overrides: TxParams = {"value": Wei(total_native_amount), "from": fulfiller}
     approval_actions = get_approval_actions(
         insufficient_approvals=approvals_to_use, web3=web3
     )
