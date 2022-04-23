@@ -1,10 +1,7 @@
-import pytest
-from brownie.network.account import Accounts
 from web3 import Web3
-from web3.constants import ADDRESS_ZERO
 
 from consideration.consideration import Consideration
-from consideration.constants import LEGACY_PROXY_CONDUIT, ItemType
+from consideration.constants import ItemType
 from consideration.types import (
     BasicConsiderationErc721Item,
     BasicConsiderationErc1155Item,
@@ -17,16 +14,6 @@ from consideration.types import (
 nft_id = 1
 nft_id2 = 2
 erc1155_amount = 3
-
-
-@pytest.fixture(scope="module")
-def second_erc721(TestERC721, accounts: Accounts):
-    return TestERC721.deploy({"from": accounts[0]})
-
-
-@pytest.fixture(scope="module")
-def second_erc1155(TestERC1155, accounts: Accounts):
-    return TestERC1155.deploy({"from": accounts[0]})
 
 
 def test_bundle_erc721_buy_now(
