@@ -46,6 +46,7 @@ from consideration.utils.balance_and_approval_check import (
 )
 from consideration.utils.fulfill import (
     fulfill_basic_order,
+    fulfill_standard_order,
     should_use_basic_fulfill,
     validate_and_sanitize_from_order_status,
 )
@@ -537,11 +538,11 @@ class Consideration:
         self,
         *,
         order: Order,
-        units_to_fill: Optional[int] = None,
+        units_to_fill=0,
         offer_criteria: list[InputCriteria] = [],
         consideration_criteria: list[InputCriteria] = [],
         tips: list[ConsiderationInputItem] = [],
-        extra_data: Optional[str] = "0x",
+        extra_data="0x",
         account_address: Optional[str] = None,
     ) -> FulfillOrderUseCase:
         """
@@ -624,4 +625,23 @@ class Consideration:
                 tips=tip_consideration_items,
                 web3=self.web3,
             )
-        return FulfillOrderUseCase(actions=[], execute_all_actions=lambda: HexBytes(1))
+
+        return fulfill_standard_order(
+            order=sanitized_order,
+            units_to_fill=units_to_fill,
+            total_size=order_status.total_size,
+            total_filled=order_status.total_filled,
+            offer_criteria=offer_criteria,
+            consideration_criteria=consideration_criteria,
+            tips=tip_consideration_items,
+            extra_data=extra_data,
+            consideration_contract=self.contract,
+            offerer_balances_and_approvals=offerer_balances_and_approvals,
+            fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
+            time_based_item_params=time_based_item_params,
+            offerer_proxy=offerer_proxy,
+            fulfiller_proxy=fulfiller_proxy,
+            proxy_strategy=self.config.proxy_strategy,
+            fulfiller=fulfiller,
+            web3=self.web3,
+        )
