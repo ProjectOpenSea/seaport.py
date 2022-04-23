@@ -35,6 +35,7 @@ from consideration.utils.item import (
     get_maximum_size_for_order,
     is_currency_item,
 )
+from consideration.utils.merkletree import MerkleTree
 
 
 def multiply_basis_points(amount: int, basis_points: int) -> int:
@@ -86,11 +87,13 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
         if isinstance(item, OfferErc721ItemWithCriteria) or isinstance(
             item, OfferErc1155ItemWithCriteria
         ):
+            leaves = item.identifiers or []
+            tree = MerkleTree(leaves)
             # Convert this into a criteria based item
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
-                identifierOrCriteria=0,
+                identifierOrCriteria=int(tree.get_root(), 16),
                 startAmount=item.amount or 1,
                 endAmount=item.end_amount or item.amount or 1,
             )

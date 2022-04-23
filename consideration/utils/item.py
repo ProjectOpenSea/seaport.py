@@ -2,7 +2,6 @@ from collections import deque
 from itertools import chain
 from typing import Literal, Optional, Sequence, Union
 
-from merkletools import MerkleTools
 from pydantic import BaseModel
 
 from consideration.constants import ItemType, Side
@@ -15,6 +14,7 @@ from consideration.types import (
     Order,
 )
 from consideration.utils.gcd import find_gcd
+from consideration.utils.merkletree import MerkleTree
 
 
 def is_currency_item(item_type: ItemType):
@@ -190,12 +190,8 @@ def generate_criteria_resolvers(
         for i, (order_index, item, index, side) in enumerate(criteria_items):
             merkle_root = item.identifierOrCriteria or 0
             input_criteria = criterias[order_index][i]
-            tree = MerkleTools()
-            leaves = list(map(hash_identifier, input_criteria.valid_identifiers or []))
-            tree.add_leaf(leaves)
-            criteria_proof = (
-                tree.get_proof(hash_identifier(input_criteria.identifier)) or []
-            )
+            tree = MerkleTree(input_criteria.valid_identifiers or [])
+            criteria_proof = tree.get_proof(input_criteria.identifier)
 
             criteria_resolvers.append(
                 CriteriaResolver(

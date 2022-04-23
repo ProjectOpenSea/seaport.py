@@ -9,7 +9,6 @@ python = "3.9.12"
 eth-brownie = "1.18.1"
 web3 = "5.27.0"
 pydantic = "^1.9.0"
-merkletools = "^1.0.3"
 
 [tool.poetry.dev-dependencies]
 pyright = "1.1.235"
