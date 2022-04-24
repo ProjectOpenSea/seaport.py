@@ -75,15 +75,17 @@ def get_present_item_amount(
         return start_amount
 
     elapsed = (
-        max(adjusted_block_timestamp, time_based_item_params.end_time)
-        - time_based_item_params.start_time
-    )
+        time_based_item_params.end_time
+        if adjusted_block_timestamp > time_based_item_params.end_time
+        else adjusted_block_timestamp
+    ) - time_based_item_params.start_time
 
     remaining = duration - elapsed
 
     # Adjust amounts based on current time
     # For offer items, we round down
     # For consideration items, we round up
+
     return (
         (start_amount * remaining)
         + (end_amount * elapsed)
