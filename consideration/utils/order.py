@@ -93,7 +93,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
-                identifierOrCriteria=int(tree.get_root(), 16),
+                identifierOrCriteria=int.from_bytes(tree.get_root(), "little"),
                 startAmount=item.amount or 1,
                 endAmount=item.end_amount or item.amount or 1,
             )

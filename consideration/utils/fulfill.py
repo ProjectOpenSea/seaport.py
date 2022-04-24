@@ -47,6 +47,7 @@ from consideration.utils.order import (
     map_order_amounts_from_units_to_fill,
     total_items_amount,
 )
+from consideration.utils.pydantic import parse_model_list
 from consideration.utils.usecase import execute_all_actions, get_transaction_methods
 
 
@@ -354,6 +355,7 @@ def fulfill_standard_order(
     fulfiller: str,
     web3: Web3
 ):
+
     # If we are supplying units to fill, we adjust the order by the minimum of the amount to fill and
     # the remaining order left to be fulfilled
     order_with_adjusted_fills = (
@@ -388,6 +390,23 @@ def fulfill_standard_order(
         .get(0, 0)
     )
 
+    offer_criteria_items = list(
+        filter(lambda item: is_criteria_item(item.itemType), offer)
+    )
+
+    consideration_criteria_items = list(
+        filter(
+            lambda item: is_criteria_item(item.itemType), consideration_including_tips
+        )
+    )
+
+    if len(offer_criteria_items) != len(offer_criteria) or len(
+        consideration_criteria_items
+    ) != len(consideration_criteria):
+        raise Exception(
+            "You must supply the appropriate criterias for criteria based items"
+        )
+
     insufficient_approvals = validate_standard_fulfill_balances_and_approvals(
         offer=offer,
         conduit=conduit,
@@ -415,24 +434,7 @@ def fulfill_standard_order(
         else insufficient_approvals.insufficient_owner_approvals
     )
 
-    offer_criteria_items = list(
-        filter(lambda item: is_criteria_item(item.itemType), offer)
-    )
-
-    consideration_criteria_items = list(
-        filter(
-            lambda item: is_criteria_item(item.itemType), consideration_including_tips
-        )
-    )
-
     has_criteria_items = offer_criteria_items or consideration_criteria_items
-
-    if len(offer_criteria_items) != len(offer_criteria) or len(
-        consideration_criteria_items
-    ) != len(consideration_criteria):
-        raise Exception(
-            "You must supply the appropriate criterias for criteria based items"
-        )
 
     approval_actions = get_approval_actions(
         insufficient_approvals=approvals_to_use, web3=web3, account_address=fulfiller
@@ -476,10 +478,12 @@ def fulfill_standard_order(
                     "denominator": denominator,
                     "extraData": extra_data,
                 },
-                generate_criteria_resolvers(
-                    orders=[order],
-                    offer_criterias=[offer_criteria],
-                    consideration_criterias=[consideration_criteria],
+                parse_model_list(
+                    generate_criteria_resolvers(
+                        orders=[order],
+                        offer_criterias=[offer_criteria],
+                        consideration_criterias=[consideration_criteria],
+                    )
                 )
                 if has_criteria_items
                 else [],

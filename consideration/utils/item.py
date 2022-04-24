@@ -197,11 +197,11 @@ def generate_criteria_resolvers(
 
             criteria_resolvers.append(
                 CriteriaResolver(
-                    order_index=order_index,
+                    orderIndex=order_index,
                     side=side,
                     index=index,
                     identifier=input_criteria.identifier,
-                    criteria_proof=[] if merkle_root == 0 else criteria_proof,
+                    criteriaProof=[] if merkle_root == 0 else criteria_proof,
                 )
             )
 
@@ -222,7 +222,7 @@ def get_item_index_to_criteria_map(
     criterias_copy = deque(criterias)
     criteria_map: dict[int, InputCriteria] = {}
     for index, item in enumerate(items):
-        if is_criteria_item(item.itemType):
+        if is_criteria_item(item.itemType) and criterias_copy:
             criteria_map[index] = criterias_copy.popleft()
 
     return criteria_map

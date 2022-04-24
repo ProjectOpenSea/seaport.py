@@ -483,7 +483,7 @@ def validate_standard_fulfill_balances_and_approvals(
     validate_offer_balances_and_approvals(
         offer=offer,
         conduit=conduit,
-        criterias=[],
+        criterias=offer_criteria,
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,

@@ -27,20 +27,20 @@ class MerkleTree:
 
     def get_root(self):
         layers = self._get_layers(self.elements)
-        root = layers[-1][0]
-        return root
+        layer = layers[-1]
+
+        return layer[0] if layer else bytes()
 
     def get_proof(self, identifier: int):
+        proof = []
         element = bytes.fromhex(hex(identifier)[2:].zfill(64))
 
-        if element in self.element_to_index:
-            raise Exception("Identifier does not exist in the Merkle Tree")
+        if element not in self.element_to_index:
+            return proof
 
         layers = self._get_layers(self.elements)
 
         index_of_element = self.element_to_index[element]
-
-        proof = []
 
         for layer in layers:
             pair_index = (

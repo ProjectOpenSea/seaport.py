@@ -112,8 +112,8 @@ class OfferErc721ItemWithCriteria(BaseModel):
     token: str
     identifiers: list[int]
     # Used for criteria based items i.e. offering to buy 5 NFTs for a collection
-    amount: Optional[int]
-    end_amount: Optional[int]
+    amount: Optional[int] = 1
+    end_amount: Optional[int] = 1
 
 
 OfferErc721Item = Union[BasicOfferErc721Item, OfferErc721ItemWithCriteria]
@@ -123,12 +123,12 @@ class BasicConsiderationErc721Item(BasicOfferErc721Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationOfferErc721ItemWithCriteria(OfferErc721ItemWithCriteria):
+class ConsiderationErc721ItemWithCriteria(OfferErc721ItemWithCriteria):
     recipient: Optional[str] = None
 
 
 ConsiderationErc721Item = Union[
-    BasicConsiderationErc721Item, BasicConsiderationOfferErc721ItemWithCriteria
+    BasicConsiderationErc721Item, ConsiderationErc721ItemWithCriteria
 ]
 
 
@@ -300,11 +300,11 @@ class FulfillOrderUseCase(BaseModel):
 
 
 class CriteriaResolver(BaseModelWithEnumValues):
-    order_index: int
+    orderIndex: int
     side: Side
     index: int
     identifier: int
-    criteria_proof: list[str]
+    criteriaProof: list[str]
 
 
 # export type FulfillmentComponent = {
