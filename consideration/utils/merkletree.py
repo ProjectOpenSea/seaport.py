@@ -55,7 +55,7 @@ class MerkleTree:
 
             index_of_element = index_of_element // 2
 
-        return list(map(lambda x: x.hex(), proof))
+        return list(map(lambda x: "0x" + x.hex(), proof))
 
     def _get_next_layer(self, elements: list[bytes]):
         return [

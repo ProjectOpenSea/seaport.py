@@ -434,7 +434,9 @@ def fulfill_standard_order(
         else insufficient_approvals.insufficient_owner_approvals
     )
 
-    has_criteria_items = offer_criteria_items or consideration_criteria_items
+    has_criteria_items = bool(offer_criteria_items) or bool(
+        consideration_criteria_items
+    )
 
     approval_actions = get_approval_actions(
         insufficient_approvals=approvals_to_use, web3=web3, account_address=fulfiller

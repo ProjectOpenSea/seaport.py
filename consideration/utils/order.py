@@ -90,10 +90,11 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
             leaves = item.identifiers or []
             tree = MerkleTree(leaves)
             # Convert this into a criteria based item
+
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
-                identifierOrCriteria=int.from_bytes(tree.get_root(), "little"),
+                identifierOrCriteria=int.from_bytes(tree.get_root(), "big"),
                 startAmount=item.amount or 1,
                 endAmount=item.end_amount or item.amount or 1,
             )
