@@ -448,7 +448,7 @@ def validate_basic_fulfill_balances_and_approvals(
     )
 
     if insufficient_balance_and_approval_amounts.insufficient_balances:
-        raise ValueError("The fulfiller does not have the balances needed to fulfill")
+        raise ValueError("The fulfiller does not have the balances needed to fulfill.")
 
     return insufficient_balance_and_approval_amounts
 

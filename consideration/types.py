@@ -155,12 +155,12 @@ class BasicConsiderationErc1155Item(BasicOfferErc1155Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationErc1155ItemWithCriteria(OfferErc1155ItemWithCriteria):
+class ConsiderationErc1155ItemWithCriteria(OfferErc1155ItemWithCriteria):
     recipient: Optional[str] = None
 
 
 ConsiderationErc1155Item = Union[
-    BasicConsiderationErc1155Item, BasicConsiderationErc1155ItemWithCriteria
+    BasicConsiderationErc1155Item, ConsiderationErc1155ItemWithCriteria
 ]
 
 
