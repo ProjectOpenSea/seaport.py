@@ -58,11 +58,19 @@ def approved_item_amount(owner: str, item: Item, operator: str, web3: Web3) -> i
 
 
 def get_approval_actions(
+    *,
     insufficient_approvals: InsufficientApprovals,
     web3: Web3,
     account_address: Optional[str] = None,
 ) -> list[ApprovalAction]:
     from_account = account_address or web3.eth.accounts[0]
+
+    deduped_approvals = [
+        approval
+        for index, approval in enumerate(insufficient_approvals)
+        if index == len(insufficient_approvals) - 1
+        or insufficient_approvals[index + 1].token != approval.token
+    ]
 
     def map_insufficient_approval_to_action(
         insufficient_approval: InsufficientApproval,
@@ -101,7 +109,7 @@ def get_approval_actions(
             ),
         )
 
-    return list(map(map_insufficient_approval_to_action, insufficient_approvals))
+    return list(map(map_insufficient_approval_to_action, deduped_approvals))
 
 
 def find_balance_and_approval(
@@ -203,11 +211,11 @@ def get_insufficient_balance_and_approval_amounts(
     proxy_strategy: ProxyStrategy,
     consideration_contract: Contract,
 ):
-    token_and_identifier_and_amount_needed: list[tuple[str, int, int]] = []
+    token_and_identifier_and_amount_needed_list: list[tuple[str, int, int]] = []
 
     for token, identifier_to_amount in token_and_identifier_amounts.items():
         for identifier_or_criteria, amount_needed in identifier_to_amount.items():
-            token_and_identifier_and_amount_needed.append(
+            token_and_identifier_and_amount_needed_list.append(
                 (token, identifier_or_criteria, amount_needed)
             )
 
@@ -262,7 +270,8 @@ def get_insufficient_balance_and_approval_amounts(
             map(
                 map_to_balance,
                 filter(
-                    filter_balance_or_approval, token_and_identifier_and_amount_needed
+                    filter_balance_or_approval,
+                    token_and_identifier_and_amount_needed_list,
                 ),
             )
         )
@@ -439,7 +448,7 @@ def validate_basic_fulfill_balances_and_approvals(
     )
 
     if insufficient_balance_and_approval_amounts.insufficient_balances:
-        raise ValueError("The fulfiller does not have the balances needed to fulfill")
+        raise ValueError("The fulfiller does not have the balances needed to fulfill.")
 
     return insufficient_balance_and_approval_amounts
 
@@ -474,7 +483,7 @@ def validate_standard_fulfill_balances_and_approvals(
     validate_offer_balances_and_approvals(
         offer=offer,
         conduit=conduit,
-        criterias=[],
+        criterias=offer_criteria,
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,

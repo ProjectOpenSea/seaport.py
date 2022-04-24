@@ -17,7 +17,7 @@ from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.types import TxParams
 
-from consideration.constants import ItemType, OrderType, ProxyStrategy
+from consideration.constants import ItemType, OrderType, ProxyStrategy, Side
 from consideration.utils.pydantic import BaseModelWithEnumValues
 
 
@@ -112,8 +112,8 @@ class OfferErc721ItemWithCriteria(BaseModel):
     token: str
     identifiers: list[int]
     # Used for criteria based items i.e. offering to buy 5 NFTs for a collection
-    amount: Optional[int]
-    end_amount: Optional[int]
+    amount: Optional[int] = 1
+    end_amount: Optional[int] = 1
 
 
 OfferErc721Item = Union[BasicOfferErc721Item, OfferErc721ItemWithCriteria]
@@ -123,12 +123,12 @@ class BasicConsiderationErc721Item(BasicOfferErc721Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationOfferErc721ItemWithCriteria(OfferErc721ItemWithCriteria):
+class ConsiderationErc721ItemWithCriteria(OfferErc721ItemWithCriteria):
     recipient: Optional[str] = None
 
 
 ConsiderationErc721Item = Union[
-    BasicConsiderationErc721Item, BasicConsiderationOfferErc721ItemWithCriteria
+    BasicConsiderationErc721Item, ConsiderationErc721ItemWithCriteria
 ]
 
 
@@ -155,12 +155,12 @@ class BasicConsiderationErc1155Item(BasicOfferErc1155Item):
     recipient: Optional[str] = None
 
 
-class BasicConsiderationErc1155ItemWithCriteria(OfferErc1155ItemWithCriteria):
+class ConsiderationErc1155ItemWithCriteria(OfferErc1155ItemWithCriteria):
     recipient: Optional[str] = None
 
 
 ConsiderationErc1155Item = Union[
-    BasicConsiderationErc1155Item, BasicConsiderationErc1155ItemWithCriteria
+    BasicConsiderationErc1155Item, ConsiderationErc1155ItemWithCriteria
 ]
 
 
@@ -221,11 +221,6 @@ class InsufficientApproval(BaseModelWithEnumValues):
 
 
 InsufficientApprovals = list[InsufficientApproval]
-
-
-# export type CreatedOrder = Order & {
-#   nonce: number;
-# };
 
 
 @runtime_checkable
@@ -299,12 +294,23 @@ class FulfillOrderUseCase(BaseModel):
     execute_all_actions: Callable[[], HexBytes]
 
 
-# export type FulfillmentComponent = {
-#   orderIndex: number;
-#   itemIndex: number;
-# };
+class CriteriaResolver(BaseModelWithEnumValues):
+    orderIndex: int
+    side: Side
+    index: int
+    identifier: int
+    criteriaProof: list[str]
 
-# export type Fulfillment = {
-#   offerComponents: FulfillmentComponent[];
-#   considerationComponents: FulfillmentComponent[];
-# };
+
+class FulfillOrderDetails(BaseModel):
+    order: Order
+    units_to_fill: int = 0
+    offer_criteria: list[InputCriteria] = []
+    consideration_criteria: list[InputCriteria] = []
+    tips: list[ConsiderationInputItem] = []
+    extra_data: str = "0x"
+
+
+class FulfillmentComponent(BaseModel):
+    orderIndex: int
+    itemIndex: int

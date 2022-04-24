@@ -35,6 +35,7 @@ from consideration.utils.item import (
     get_maximum_size_for_order,
     is_currency_item,
 )
+from consideration.utils.merkletree import MerkleTree
 
 
 def multiply_basis_points(amount: int, basis_points: int) -> int:
@@ -86,11 +87,14 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
         if isinstance(item, OfferErc721ItemWithCriteria) or isinstance(
             item, OfferErc1155ItemWithCriteria
         ):
+            leaves = item.identifiers or []
+            tree = MerkleTree(leaves)
             # Convert this into a criteria based item
+
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
-                identifierOrCriteria=0,
+                identifierOrCriteria=int.from_bytes(tree.get_root(), "big"),
                 startAmount=item.amount or 1,
                 endAmount=item.end_amount or item.amount or 1,
             )
@@ -152,7 +156,7 @@ def total_items_amount(items: Sequence[Item]):
 # After applying the fraction, we can view this order as the "canonical" order for which we
 # check approvals and balances
 def map_order_amounts_from_filled_status(
-    order: Order, total_filled: int, total_size: int
+    *, order: Order, total_filled: int, total_size: int
 ):
     if total_filled == 0 or total_size == 0:
         return order
@@ -200,12 +204,26 @@ def map_order_amounts_from_filled_status(
     )
 
 
-# Maps order offer and consideration item amounts based on the units needed to fulfill
-# After applying the fraction, we can view this order as the "canonical" order for which we
-# check approvals and balances
 def map_order_amounts_from_units_to_fill(
-    order: Order, units_to_fill: int, total_filled: int, total_size: int
+    *, order: Order, units_to_fill: int, total_filled: int, total_size: int
 ):
+    """
+    Maps order offer and consideration item amounts based on the units needed to fulfill
+    After applying the fraction, we can view this order as the "canonical" order for which we
+    check approvals and balances
+
+    Args:
+        order (Order): order struct
+        units_to_fill (int): how many units to fill, which must divide the order cleanly
+        total_filled (int): how much the order has already been filled
+        total_size (int): the maximum size of the order
+
+    Raises:
+        ValueError: when supplied an invalid units to fill value
+
+    Returns:
+        _type_: the order with adjusted amounts based on units to fill
+    """
     if units_to_fill <= 0:
         raise ValueError("Units to fill must be greater than 1")
 

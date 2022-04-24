@@ -70,6 +70,16 @@ def erc1155(TestERC1155, accounts: Accounts):
 
 
 @pytest.fixture(scope="module")
+def second_erc721(TestERC721, accounts: Accounts):
+    return TestERC721.deploy({"from": accounts[0]})
+
+
+@pytest.fixture(scope="module")
+def second_erc1155(TestERC1155, accounts: Accounts):
+    return TestERC1155.deploy({"from": accounts[0]})
+
+
+@pytest.fixture(scope="module")
 def offerer(accounts: Accounts) -> _PrivateKeyAccount:
     return accounts[0]
 
