@@ -736,11 +736,18 @@ def fulfill_available_orders(
                 )
                 if has_criteria_items
                 else [],
-                [parse_model_list(fulfillment) for fulfillment in offer_fulfillments],
-                [
-                    parse_model_list(fulfillment)
-                    for fulfillment in consideration_fulfillments
-                ],
+                tuple(
+                    [
+                        tuple([(f.orderIndex, f.itemIndex) for f in fulfillment])
+                        for fulfillment in offer_fulfillments
+                    ]
+                ),
+                tuple(
+                    [
+                        tuple([(f.orderIndex, f.itemIndex) for f in fulfillment])
+                        for fulfillment in consideration_fulfillments
+                    ]
+                ),
                 fulfiller_conduit,
             ),
             payable_overrides,
@@ -785,11 +792,13 @@ def generate_fulfill_orders_fulfillments(
                     else item.identifierOrCriteria,
                 )
                 # We tack on the index to ensure that erc721s can never be aggregated and instead must be in separate arrays
-                + str(item_index)
-                if is_erc721_item(item.itemType)
-                else ""
+                + (str(item_index) if is_erc721_item(item.itemType) else "")
             )
-            offer_aggregated_fulfillments.get(aggregate_key, []).append(
+
+            if aggregate_key not in offer_aggregated_fulfillments:
+                offer_aggregated_fulfillments[aggregate_key] = []
+
+            offer_aggregated_fulfillments[aggregate_key].append(
                 FulfillmentComponent(orderIndex=order_index, itemIndex=item_index)
             )
 
@@ -815,11 +824,13 @@ def generate_fulfill_orders_fulfillments(
                     else item.identifierOrCriteria,
                 )
                 # We tack on the index to ensure that erc721s can never be aggregated and instead must be in separate arrays
-                + str(item_index)
-                if is_erc721_item(item.itemType)
-                else ""
+                + (str(item_index) if is_erc721_item(item.itemType) else "")
             )
-            consideration_aggregated_fulfillments.get(aggregate_key, []).append(
+
+            if aggregate_key not in consideration_aggregated_fulfillments:
+                consideration_aggregated_fulfillments[aggregate_key] = []
+
+            consideration_aggregated_fulfillments[aggregate_key].append(
                 FulfillmentComponent(orderIndex=order_index, itemIndex=item_index)
             )
 

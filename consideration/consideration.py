@@ -1,6 +1,6 @@
 from itertools import chain
 from time import time
-from typing import Optional, cast
+from typing import Any, Optional, cast
 
 from hexbytes import HexBytes
 from web3 import Web3
@@ -29,6 +29,7 @@ from consideration.types import (
     CreateOrderAction,
     CreateOrderUseCase,
     Fee,
+    FulfillOrderDetails,
     FulfillOrderUseCase,
     InputCriteria,
     Order,
@@ -45,6 +46,8 @@ from consideration.utils.balance_and_approval_check import (
     validate_offer_balances_and_approvals,
 )
 from consideration.utils.fulfill import (
+    FulfillOrdersMetadata,
+    fulfill_available_orders,
     fulfill_basic_order,
     fulfill_standard_order,
     should_use_basic_fulfill,
@@ -641,6 +644,164 @@ class Consideration:
             time_based_item_params=time_based_item_params,
             offerer_proxy=offerer_proxy,
             fulfiller_proxy=fulfiller_proxy,
+            proxy_strategy=self.config.proxy_strategy,
+            fulfiller=fulfiller,
+            web3=self.web3,
+        )
+
+    def fulfill_orders(
+        self,
+        fulfill_order_details: list[FulfillOrderDetails],
+        account_address: Optional[str],
+    ):
+        fulfiller = account_address or self.web3.eth.accounts[0]
+
+        unique_offerers = set(
+            [detail.order.parameters.offerer for detail in fulfill_order_details]
+        )
+
+        offerer_proxies = [
+            self._get_legacy_conduit_proxy(offerer) for offerer in unique_offerers
+        ]
+
+        fulfiller_proxy = self._get_legacy_conduit_proxy(fulfiller)
+
+        offerer_nonces = [self.get_nonce(offerer) for offerer in unique_offerers]
+
+        offerer_order_metadata: dict[str, dict] = {}
+
+        for index, offerer in enumerate(unique_offerers):
+            offerer_order_metadata[offerer] = {
+                "proxy": offerer_proxies[index],
+                "nonce": offerer_nonces[index],
+                "items": list(
+                    chain.from_iterable(
+                        [
+                            detail.order.parameters.offer
+                            for detail in filter(
+                                lambda x: x.order.parameters.offerer == offerer,
+                                fulfill_order_details,
+                            )
+                        ]
+                    )
+                ),
+                "criteria": list(
+                    chain.from_iterable(
+                        [
+                            detail.offer_criteria
+                            for detail in filter(
+                                lambda x: x.order.parameters.offerer == offerer,
+                                fulfill_order_details,
+                            )
+                        ]
+                    )
+                ),
+                "balances_and_approvals": [],
+            }
+
+        all_offer_items = list(
+            chain.from_iterable(
+                [detail.order.parameters.offer for detail in fulfill_order_details]
+            )
+        )
+
+        all_consideration_items = list(
+            chain.from_iterable(
+                [
+                    detail.order.parameters.consideration
+                    for detail in fulfill_order_details
+                ]
+            )
+        )
+
+        all_offer_criteria = list(
+            chain.from_iterable(
+                [detail.offer_criteria for detail in fulfill_order_details]
+            )
+        )
+
+        all_consideration_criteria = list(
+            chain.from_iterable(
+                [detail.consideration_criteria for detail in fulfill_order_details]
+            )
+        )
+
+        unique_offerer_balances_and_approvals = [
+            get_balances_and_approvals(
+                owner=offerer,
+                items=offerer_order_metadata[offerer]["items"],
+                criterias=offerer_order_metadata[offerer]["criteria"],
+                proxy=offerer_order_metadata[offerer]["proxy"],
+                consideration_contract=self.contract,
+                web3=self.web3,
+            )
+            for offerer in unique_offerers
+        ]
+
+        fulfiller_balances_and_approvals = get_balances_and_approvals(
+            owner=fulfiller,
+            items=list(chain(all_offer_items, all_consideration_items)),
+            criterias=list(chain(all_offer_criteria, all_consideration_criteria)),
+            proxy=fulfiller_proxy,
+            consideration_contract=self.contract,
+            web3=self.web3,
+        )
+
+        order_statuses = [
+            self.get_order_status(
+                self.get_order_hash(
+                    OrderComponents(
+                        **detail.order.parameters.dict(),
+                        nonce=offerer_order_metadata[detail.order.parameters.offerer][
+                            "nonce"
+                        ],
+                    )
+                )
+            )
+            for detail in fulfill_order_details
+        ]
+
+        current_block = self.web3.eth.get_block("latest")
+
+        current_block_timestamp = current_block.get("timestamp", int(time()))
+
+        for index, offerer in enumerate(unique_offerers):
+            offerer_order_metadata[offerer][
+                "balances_and_approvals"
+            ] = unique_offerer_balances_and_approvals[index]
+
+        orders_metadata: list[FulfillOrdersMetadata] = [
+            FulfillOrdersMetadata(
+                order=details.order,
+                units_to_fill=details.units_to_fill,
+                order_status=order_statuses[index],
+                offer_criteria=details.offer_criteria,
+                consideration_criteria=details.consideration_criteria,
+                tips=[
+                    ConsiderationItem(
+                        **map_input_item_to_offer_item(tip).dict(),
+                        recipient=tip.recipient or details.order.parameters.offerer,
+                    )
+                    for tip in details.tips
+                ],
+                extra_data=details.extra_data,
+                offerer_balances_and_approvals=offerer_order_metadata[
+                    details.order.parameters.offerer
+                ]["balances_and_approvals"],
+                offerer_proxy=offerer_order_metadata[details.order.parameters.offerer][
+                    "proxy"
+                ],
+            )
+            for index, details in enumerate(fulfill_order_details)
+        ]
+
+        return fulfill_available_orders(
+            orders_metadata=orders_metadata,
+            consideration_contract=self.contract,
+            fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
+            current_block_timestamp=current_block_timestamp,
+            ascending_amount_timestamp_buffer=self.config.ascending_amount_fulfillment_buffer,
+            fulfiller_proxy=fulfiller,
             proxy_strategy=self.config.proxy_strategy,
             fulfiller=fulfiller,
             web3=self.web3,

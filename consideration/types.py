@@ -302,12 +302,15 @@ class CriteriaResolver(BaseModelWithEnumValues):
     criteriaProof: list[str]
 
 
+class FulfillOrderDetails(BaseModel):
+    order: Order
+    units_to_fill: int = 0
+    offer_criteria: list[InputCriteria] = []
+    consideration_criteria: list[InputCriteria] = []
+    tips: list[ConsiderationInputItem] = []
+    extra_data: str = "0x"
+
+
 class FulfillmentComponent(BaseModel):
     orderIndex: int
     itemIndex: int
-
-
-# export type Fulfillment = {
-#   offerComponents: FulfillmentComponent[];
-#   considerationComponents: FulfillmentComponent[];
-# };
