@@ -3,6 +3,7 @@ from typing import cast
 
 from brownie import Wei
 from hexbytes import HexBytes
+from pydantic import BaseModel
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.contract import Contract
@@ -19,14 +20,18 @@ from consideration.types import (
     BalancesAndApprovals,
     ConsiderationItem,
     ExchangeAction,
+    FulfillmentComponent,
     FulfillOrderUseCase,
     InputCriteria,
+    InsufficientApproval,
+    InsufficientApprovals,
     Order,
     OrderParameters,
     OrderStatus,
 )
 from consideration.utils.balance_and_approval_check import (
     get_approval_actions,
+    use_offerer_proxy,
     use_proxy_from_approvals,
     validate_basic_fulfill_balances_and_approvals,
     validate_standard_fulfill_balances_and_approvals,
@@ -35,10 +40,12 @@ from consideration.utils.gcd import gcd
 from consideration.utils.item import (
     TimeBasedItemParams,
     generate_criteria_resolvers,
+    get_item_index_to_criteria_map,
     get_maximum_size_for_order,
     get_summed_token_and_identifier_amounts,
     is_criteria_item,
     is_currency_item,
+    is_erc721_item,
     is_native_currency_item,
 )
 from consideration.utils.order import (
@@ -353,9 +360,8 @@ def fulfill_standard_order(
     fulfiller_proxy: str,
     proxy_strategy: ProxyStrategy,
     fulfiller: str,
-    web3: Web3
+    web3: Web3,
 ):
-
     # If we are supplying units to fill, we adjust the order by the minimum of the amount to fill and
     # the remaining order left to be fulfilled
     order_with_adjusted_fills = (
@@ -507,6 +513,319 @@ def fulfill_standard_order(
     return FulfillOrderUseCase(
         actions=actions,
         execute_all_actions=lambda: cast(HexBytes, execute_all_actions(actions)),
+    )
+
+
+class FulfillOrdersMetadata(BaseModel):
+    order: Order
+    units_to_fill: int
+    order_status: OrderStatus
+    offer_criteria: list[InputCriteria]
+    consideration_criteria: list[InputCriteria]
+    tips: list[ConsiderationItem]
+    extra_data: str
+    offerer_balances_and_approvals: BalancesAndApprovals
+    offerer_proxy: str
+
+
+def fulfill_available_orders(
+    orders_metadata: list[FulfillOrdersMetadata],
+    consideration_contract: Contract,
+    fulfiller_balances_and_approvals: BalancesAndApprovals,
+    current_block_timestamp: int,
+    ascending_amount_timestamp_buffer: int,
+    fulfiller_proxy: str,
+    proxy_strategy: ProxyStrategy,
+    fulfiller: str,
+    web3: Web3,
+):
+    sanitized_orders_metadata = list(
+        map(
+            lambda order_metadata: order_metadata.copy(
+                update={
+                    "order": validate_and_sanitize_from_order_status(
+                        order_metadata.order, order_metadata.order_status
+                    )
+                }
+            ),
+            orders_metadata,
+        )
+    )
+
+    orders_metadata_with_adjusted_fills = list(
+        map(
+            lambda order_metadata: order_metadata.copy(
+                update={
+                    "order": map_order_amounts_from_units_to_fill(
+                        order=order_metadata.order,
+                        units_to_fill=order_metadata.units_to_fill,
+                        total_filled=order_metadata.order_status.total_filled,
+                        total_size=order_metadata.order_status.total_size,
+                    )
+                    if order_metadata.units_to_fill
+                    else map_order_amounts_from_filled_status(
+                        order=order_metadata.order,
+                        total_filled=order_metadata.order_status.total_filled,
+                        total_size=order_metadata.order_status.total_size,
+                    )
+                }
+            ),
+            sanitized_orders_metadata,
+        )
+    )
+
+    total_native_amount = 0
+    total_insufficient_owner_approvals: list[InsufficientApproval] = []
+    total_insufficient_proxy_approvals: list[InsufficientApproval] = []
+    has_criteria_items = False
+
+    def add_approval_if_needed(
+        total_insufficient_approvals: InsufficientApprovals,
+        order_insufficient_approvals: InsufficientApprovals,
+    ):
+        for insufficient_approval in order_insufficient_approvals:
+            if not any(
+                approval.token == insufficient_approval.token
+                for approval in total_insufficient_approvals
+            ):
+                total_insufficient_approvals.append(insufficient_approval)
+
+    for order_metadata in orders_metadata_with_adjusted_fills:
+        consideration_including_tips = list(
+            chain(order_metadata.order.parameters.consideration, order_metadata.tips)
+        )
+
+        time_based_item_params = TimeBasedItemParams(
+            start_time=order_metadata.order.parameters.startTime,
+            end_time=order_metadata.order.parameters.endTime,
+            current_block_timestamp=current_block_timestamp,
+            ascending_amount_timestamp_buffer=ascending_amount_timestamp_buffer,
+            is_consideration_item=True,
+        )
+
+        total_native_amount += (
+            get_summed_token_and_identifier_amounts(
+                items=consideration_including_tips,
+                criterias=order_metadata.consideration_criteria,
+                time_based_item_params=time_based_item_params,
+            )
+            .get(ADDRESS_ZERO, {})
+            .get(0, 0)
+        )
+
+        insufficient_approvals = validate_standard_fulfill_balances_and_approvals(
+            offer=order_metadata.order.parameters.offer,
+            conduit=order_metadata.order.parameters.conduit,
+            consideration=consideration_including_tips,
+            offer_criteria=order_metadata.offer_criteria,
+            consideration_criteria=order_metadata.consideration_criteria,
+            offerer_balances_and_approvals=order_metadata.offerer_balances_and_approvals,
+            fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
+            time_based_item_params=time_based_item_params,
+            consideration_contract=consideration_contract,
+            offerer_proxy=order_metadata.offerer_proxy,
+            fulfiller_proxy=fulfiller_proxy,
+            proxy_strategy=proxy_strategy,
+        )
+
+        offer_criteria_items = list(
+            filter(
+                lambda item: is_criteria_item(item.itemType),
+                order_metadata.order.parameters.offer,
+            )
+        )
+
+        consideration_criteria_items = list(
+            filter(
+                lambda item: is_criteria_item(item.itemType),
+                consideration_including_tips,
+            )
+        )
+
+        if len(offer_criteria_items) != len(order_metadata.offer_criteria) or len(
+            consideration_criteria_items
+        ) != len(order_metadata.consideration_criteria):
+            raise Exception(
+                "You must supply the appropriate criterias for criteria based items"
+            )
+
+        add_approval_if_needed(
+            total_insufficient_owner_approvals,
+            insufficient_approvals.insufficient_owner_approvals,
+        )
+        add_approval_if_needed(
+            total_insufficient_proxy_approvals,
+            insufficient_approvals.insufficient_proxy_approvals,
+        )
+
+    use_proxy_for_fulfiller = use_proxy_from_approvals(
+        insufficient_owner_approvals=total_insufficient_proxy_approvals,
+        insufficient_proxy_approvals=total_insufficient_proxy_approvals,
+        proxy_strategy=proxy_strategy,
+    )
+
+    approvals_to_use = (
+        total_insufficient_proxy_approvals
+        if use_proxy_for_fulfiller
+        else total_insufficient_owner_approvals
+    )
+
+    payable_overrides: TxParams = {"value": Wei(total_native_amount), "from": fulfiller}
+
+    approval_actions = get_approval_actions(
+        insufficient_approvals=approvals_to_use, web3=web3, account_address=fulfiller
+    )
+
+    def map_to_advanced_order_with_tip(order_metadata: FulfillOrdersMetadata):
+        max_units = get_maximum_size_for_order(order_metadata.order)
+        units_gcd = gcd(order_metadata.units_to_fill, max_units)
+        numerator = (
+            order_metadata.units_to_fill // units_gcd
+            if order_metadata.units_to_fill
+            else 1
+        )
+        denominator = max_units // units_gcd if order_metadata.units_to_fill else 1
+
+        consideration_including_tips = list(
+            chain(order_metadata.order.parameters.consideration, order_metadata.tips)
+        )
+
+        return {
+            **order_metadata.order.copy(
+                update={
+                    "parameters": order_metadata.order.parameters.copy(
+                        update={
+                            "consideration": consideration_including_tips,
+                            "totalOriginalConsiderationItems": len(
+                                order_metadata.order.parameters.consideration
+                            ),
+                        }
+                    )
+                }
+            ).dict(),
+            "numerator": numerator,
+            "denominator": denominator,
+            "extraData": order_metadata.extra_data,
+        }
+
+    advanced_orders_with_tips = list(
+        map(map_to_advanced_order_with_tip, sanitized_orders_metadata)
+    )
+
+    (
+        offer_fulfillments,
+        consideration_fulfillments,
+    ) = generate_fulfill_orders_fulfillments(orders_metadata)
+
+    fulfiller_conduit = LEGACY_PROXY_CONDUIT if use_proxy_for_fulfiller else NO_CONDUIT
+
+    exchange_action = ExchangeAction(
+        transaction_methods=get_transaction_methods(
+            consideration_contract.functions.fulfillAvailableAdvancedOrders(
+                advanced_orders_with_tips,
+                generate_criteria_resolvers(
+                    orders=[order_metadata.order for order_metadata in orders_metadata],
+                    offer_criterias=[
+                        order_metadata.offer_criteria
+                        for order_metadata in orders_metadata
+                    ],
+                    consideration_criterias=[
+                        order_metadata.consideration_criteria
+                        for order_metadata in orders_metadata
+                    ],
+                )
+                if has_criteria_items
+                else [],
+                [parse_model_list(fulfillment) for fulfillment in offer_fulfillments],
+                [
+                    parse_model_list(fulfillment)
+                    for fulfillment in consideration_fulfillments
+                ],
+                fulfiller_conduit,
+            ),
+            payable_overrides,
+        )
+    )
+
+    actions = list(chain(approval_actions, [exchange_action]))
+
+    return FulfillOrderUseCase(
+        actions=actions,
+        execute_all_actions=lambda: cast(HexBytes, execute_all_actions(actions)),
+    )
+
+
+def generate_fulfill_orders_fulfillments(
+    orders_metadata: list[FulfillOrdersMetadata],
+) -> tuple[list[list[FulfillmentComponent]], list[list[FulfillmentComponent]]]:
+    def hash_aggregate_key(source_or_destination: str, token: str, identifier: int):
+        return f"{source_or_destination}-{token}-{identifier}"
+
+    offer_aggregated_fulfillments: dict[str, list[FulfillmentComponent]] = {}
+    consideration_aggregated_fulfillments: dict[str, list[FulfillmentComponent]] = {}
+
+    for order_index, order_metadata in enumerate(orders_metadata):
+        item_index_to_criteria = get_item_index_to_criteria_map(
+            order_metadata.order.parameters.offer, order_metadata.offer_criteria
+        )
+
+        source = (
+            order_metadata.offerer_proxy
+            if use_offerer_proxy(order_metadata.order.parameters.conduit)
+            else order_metadata.order.parameters.offerer
+        )
+
+        for item_index, item in enumerate(order_metadata.order.parameters.offer):
+            aggregate_key = (
+                hash_aggregate_key(
+                    source,
+                    item.token,
+                    item_index_to_criteria[item_index].identifier
+                    if item_index in item_index_to_criteria
+                    else item.identifierOrCriteria,
+                )
+                # We tack on the index to ensure that erc721s can never be aggregated and instead must be in separate arrays
+                + str(item_index)
+                if is_erc721_item(item.itemType)
+                else ""
+            )
+            offer_aggregated_fulfillments.get(aggregate_key, []).append(
+                FulfillmentComponent(orderIndex=order_index, itemIndex=item_index)
+            )
+
+    for order_index, order_metadata in enumerate(orders_metadata):
+        item_index_to_criteria = get_item_index_to_criteria_map(
+            order_metadata.order.parameters.consideration,
+            order_metadata.consideration_criteria,
+        )
+
+        for item_index, item in enumerate(
+            list(
+                chain(
+                    order_metadata.order.parameters.consideration, order_metadata.tips
+                )
+            )
+        ):
+            aggregate_key = (
+                hash_aggregate_key(
+                    item.recipient,
+                    item.token,
+                    item_index_to_criteria[item_index].identifier
+                    if item_index in item_index_to_criteria
+                    else item.identifierOrCriteria,
+                )
+                # We tack on the index to ensure that erc721s can never be aggregated and instead must be in separate arrays
+                + str(item_index)
+                if is_erc721_item(item.itemType)
+                else ""
+            )
+            consideration_aggregated_fulfillments.get(aggregate_key, []).append(
+                FulfillmentComponent(orderIndex=order_index, itemIndex=item_index)
+            )
+
+    return (
+        list(offer_aggregated_fulfillments.values()),
+        list(consideration_aggregated_fulfillments.values()),
     )
 
 

@@ -223,11 +223,6 @@ class InsufficientApproval(BaseModelWithEnumValues):
 InsufficientApprovals = list[InsufficientApproval]
 
 
-# export type CreatedOrder = Order & {
-#   nonce: number;
-# };
-
-
 @runtime_checkable
 class BuildTransaction(Protocol):
     def __call__(self, transaction: Optional[TxParams] = None) -> TxParams:
@@ -307,10 +302,10 @@ class CriteriaResolver(BaseModelWithEnumValues):
     criteriaProof: list[str]
 
 
-# export type FulfillmentComponent = {
-#   orderIndex: number;
-#   itemIndex: number;
-# };
+class FulfillmentComponent(BaseModel):
+    orderIndex: int
+    itemIndex: int
+
 
 # export type Fulfillment = {
 #   offerComponents: FulfillmentComponent[];
