@@ -25,13 +25,28 @@ def legacy_proxy_registry(WyvernProxyRegistry, accounts: Accounts):
 
 
 @pytest.fixture(scope="module")
+def legacy_token_transfer_proxy(
+    WyvernTokenTransferProxy, legacy_proxy_registry, accounts: Accounts
+):
+    legacy_token_transfer_proxy_contract = WyvernTokenTransferProxy.deploy(
+        legacy_proxy_registry.address, {"from": accounts[0]}
+    )
+
+    return legacy_token_transfer_proxy_contract
+
+
+@pytest.fixture(scope="module")
 def consideration_contract(
-    TestConsideration, legacy_proxy_registry, accounts: Accounts
+    TestConsideration,
+    legacy_proxy_registry,
+    legacy_token_transfer_proxy,
+    accounts: Accounts,
 ):
     legacy_proxy_implementation = legacy_proxy_registry.delegateProxyImplementation()
 
     consideration = TestConsideration.deploy(
         legacy_proxy_registry.address,
+        legacy_token_transfer_proxy.address,
         legacy_proxy_implementation,
         {"from": accounts[0]},
     )
@@ -42,13 +57,19 @@ def consideration_contract(
 
 
 @pytest.fixture(scope="module")
-def consideration(consideration_contract, legacy_proxy_registry, accounts: Accounts):
+def consideration(
+    consideration_contract,
+    legacy_proxy_registry,
+    legacy_token_transfer_proxy,
+    accounts: Accounts,
+):
     return Consideration(
         provider=Web3.HTTPProvider("http://127.0.0.1:8545"),
         config=ConsiderationConfig(
             overrides=ContractOverrides(
                 contract_address=consideration_contract.address,
                 legacy_proxy_registry_address=legacy_proxy_registry.address,
+                legacy_token_transfer_proxy_address=legacy_token_transfer_proxy.address,
             )
         ),
     )

@@ -1,40 +1,24 @@
 from itertools import chain
 from secrets import token_hex
-from typing import Optional, Sequence, Union, cast
+from typing import Sequence
 
 from web3.constants import ADDRESS_ZERO
-from web3.contract import Contract
 
-from consideration.constants import (
-    ONE_HUNDRED_PERCENT_BP,
-    ItemType,
-    OrderType,
-    ProxyStrategy,
-)
+from consideration.constants import ONE_HUNDRED_PERCENT_BP, ItemType
 from consideration.types import (
-    BalancesAndApprovals,
     BasicOfferErc721Item,
     BasicOfferErc1155Item,
     ConsiderationItem,
     CreateInputItem,
     Fee,
-    InputCriteria,
     Item,
     OfferCurrencyItem,
     OfferErc721ItemWithCriteria,
     OfferErc1155ItemWithCriteria,
     OfferItem,
     Order,
-    OrderParameters,
 )
-from consideration.utils.balance_and_approval_check import (
-    validate_offer_balances_and_approvals,
-)
-from consideration.utils.item import (
-    TimeBasedItemParams,
-    get_maximum_size_for_order,
-    is_currency_item,
-)
+from consideration.utils.item import get_maximum_size_for_order, is_currency_item
 from consideration.utils.merkletree import MerkleTree
 
 

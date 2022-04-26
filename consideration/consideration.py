@@ -1,8 +1,7 @@
 from itertools import chain
 from time import time
-from typing import Any, Optional, cast
+from typing import Optional, cast
 
-from hexbytes import HexBytes
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.contract import Contract
@@ -15,12 +14,14 @@ from consideration.constants import (
     CONSIDERATION_CONTRACT_NAME,
     CONSIDERATION_CONTRACT_VERSION,
     EIP_712_ORDER_TYPE,
+    LEGACY_PROXY_ADDRESSES,
     LEGACY_PROXY_CONDUIT,
     MAX_INT,
     NO_CONDUIT,
     OrderType,
 )
 from consideration.types import (
+    ApprovalOperators,
     ConsiderationConfig,
     ConsiderationInputItem,
     ConsiderationItem,
@@ -41,8 +42,6 @@ from consideration.types import (
 from consideration.utils.balance_and_approval_check import (
     get_approval_actions,
     get_balances_and_approvals,
-    get_insufficient_balance_and_approval_amounts,
-    use_proxy_from_approvals,
     validate_offer_balances_and_approvals,
 )
 from consideration.utils.fulfill import (
@@ -54,11 +53,7 @@ from consideration.utils.fulfill import (
     validate_and_sanitize_from_order_status,
 )
 from consideration.utils.hex_utils import bytes_to_hex
-from consideration.utils.item import (
-    TimeBasedItemParams,
-    get_summed_token_and_identifier_amounts,
-    is_currency_item,
-)
+from consideration.utils.item import TimeBasedItemParams, is_currency_item
 from consideration.utils.order import (
     are_all_currencies_same,
     deduct_fees,
@@ -76,6 +71,7 @@ class Consideration:
     web3: Web3
     config: ConsiderationConfig
     legacy_proxy_registry_address: str
+    legacy_token_transfer_proxy_address: str
 
     def __init__(
         self,
@@ -85,7 +81,12 @@ class Consideration:
         self.web3 = Web3(provider=provider)
         self.config = config
         self.legacy_proxy_registry_address = (
-            config.overrides.legacy_proxy_registry_address or ADDRESS_ZERO
+            config.overrides.legacy_proxy_registry_address
+            or LEGACY_PROXY_ADDRESSES[config.network]["WyvernProxyRegistry"]
+        )
+        self.legacy_token_transfer_proxy_address = (
+            config.overrides.legacy_token_transfer_proxy_address
+            or LEGACY_PROXY_ADDRESSES[config.network]["WyvernTokenTransferProxy"]
         )
         self.contract = self.web3.eth.contract(
             address=config.overrides.contract_address
@@ -104,17 +105,28 @@ class Consideration:
             )
         return OrderType.FULL_RESTRICTED if restricted_by_zone else OrderType.FULL_OPEN
 
-    def _get_legacy_conduit_proxy(self, address: str) -> str:
-        proxy_registry = self.web3.eth.contract(
-            address=Web3.toChecksumAddress(self.legacy_proxy_registry_address),
-            abi=PROXY_REGISTRY_INTERFACE_ABI,
-        )
+    def _get_conduit_operators(self, address: str, conduit: str) -> ApprovalOperators:
+        if conduit == NO_CONDUIT:
+            return ApprovalOperators(
+                operator=self.contract.address, erc20_operator=self.contract.address
+            )
+        if conduit == LEGACY_PROXY_CONDUIT:
+            proxy_registry = self.web3.eth.contract(
+                address=Web3.toChecksumAddress(self.legacy_proxy_registry_address),
+                abi=PROXY_REGISTRY_INTERFACE_ABI,
+            )
 
-        return proxy_registry.functions.proxies(address).call()
+            operator = proxy_registry.functions.proxies(address).call()
+            erc20_operator = self.legacy_token_transfer_proxy_address
+
+            return ApprovalOperators(operator=operator, erc20_operator=erc20_operator)
+
+        return ApprovalOperators(operator=conduit, erc20_operator=conduit)
 
     def create_order(
         self,
         *,
+        conduit: str = NO_CONDUIT,
         account_address: Optional[str] = None,
         allow_partial_fills=False,
         consideration: list[ConsiderationInputItem],
@@ -134,6 +146,8 @@ class Consideration:
         or a signature request that will then be supplied into the final Order struct, ready to be fulfilled.
 
         Args:
+            conduit (str, optional): The address to source your approvals from. Defaults to address(0) which refers to the Consideration contract.
+                                     Another special value is address(1) will refer to the legacy proxy. All other values refer to the specified address
             offer (list[CreateInputItem]): The items you are willing to offer. This is a condensed version of the Consideration struct OfferItem for convenience
             consideration (list[ConsiderationInputItem]): The items that will go to their respective recipients upon receiving your offer.
             nonce (Optional[int], optional): The nonce from which to create the order with. Automatically fetched from the contract if not provided.
@@ -181,9 +195,7 @@ class Consideration:
             currencies
         )
 
-        proxy = self._get_legacy_conduit_proxy(
-            address=offerer,
-        )
+        operators = self._get_conduit_operators(address=offerer, conduit=conduit)
 
         resolved_nonce = nonce or self.get_nonce(offerer=offerer)
 
@@ -191,26 +203,8 @@ class Consideration:
             owner=offerer,
             items=offer_items,
             criterias=[],
-            proxy=proxy,
-            consideration_contract=self.contract,
+            operators=operators,
             web3=self.web3,
-        )
-
-        insufficient_approval_amounts = get_insufficient_balance_and_approval_amounts(
-            balances_and_approvals=balances_and_approvals,
-            token_and_identifier_amounts=get_summed_token_and_identifier_amounts(
-                items=offer_items,
-                criterias=[],
-            ),
-            consideration_contract=self.contract,
-            proxy=proxy,
-            proxy_strategy=self.config.proxy_strategy,
-        )
-
-        use_proxy = use_proxy_from_approvals(
-            insufficient_owner_approvals=insufficient_approval_amounts.insufficient_owner_approvals,
-            insufficient_proxy_approvals=insufficient_approval_amounts.insufficient_proxy_approvals,
-            proxy_strategy=self.config.proxy_strategy,
         )
 
         order_type = self._get_order_type_from_options(
@@ -237,8 +231,6 @@ class Consideration:
             )
         )
 
-        conduit = LEGACY_PROXY_CONDUIT if use_proxy else NO_CONDUIT
-
         order_parameters = OrderParameters(
             offerer=offerer,
             zone=zone,
@@ -264,9 +256,7 @@ class Consideration:
             criterias=[],
             balances_and_approvals=balances_and_approvals,
             throw_on_insufficient_balances=check_balances_and_approvals,
-            consideration_contract=self.contract,
-            proxy=proxy,
-            proxy_strategy=self.config.proxy_strategy,
+            operators=operators,
         )
 
         approval_actions = (
@@ -540,6 +530,7 @@ class Consideration:
     def fulfill_order(
         self,
         *,
+        conduit: str = NO_CONDUIT,
         order: Order,
         units_to_fill=0,
         offer_criteria: list[InputCriteria] = [],
@@ -555,6 +546,7 @@ class Consideration:
         i.e. If the maximum size of an order is 4, supplying 2 as the units to fulfill will fill half of the order
 
         Args:
+            conduit (str, optional): Address to source your approvals from.
             order (Order): standard order struct
             units_to_fill (Optional[int], optional): the number of units to fill for the given order. Only used if you wish to partially fill an order
             offer_criteria (list[InputCriteria], optional): an array of criteria with length equal to the number of offer criteria items. Defaults to [].
@@ -565,16 +557,17 @@ class Consideration:
         """
         fulfiller = account_address or self.web3.eth.accounts[0]
         offerer = order.parameters.offerer
-        offerer_proxy = self._get_legacy_conduit_proxy(offerer)
-        fulfiller_proxy = self._get_legacy_conduit_proxy(fulfiller)
+        offerer_operators = self._get_conduit_operators(
+            offerer, order.parameters.conduit
+        )
+        fulfiller_operators = self._get_conduit_operators(fulfiller, conduit)
         nonce = self.get_nonce(offerer)
 
         offerer_balances_and_approvals = get_balances_and_approvals(
             owner=offerer,
             items=order.parameters.offer,
             criterias=offer_criteria,
-            proxy=offerer_proxy,
-            consideration_contract=self.contract,
+            operators=offerer_operators,
             web3=self.web3,
         )
 
@@ -584,8 +577,7 @@ class Consideration:
             owner=fulfiller,
             items=list(chain(order.parameters.offer, order.parameters.consideration)),
             criterias=list(chain(offer_criteria, consideration_criteria)),
-            proxy=fulfiller_proxy,
-            consideration_contract=self.contract,
+            operators=fulfiller_operators,
             web3=self.web3,
         )
 
@@ -616,20 +608,21 @@ class Consideration:
             sanitized_order.parameters, order_status.total_filled
         ):
             return fulfill_basic_order(
+                conduit=conduit,
                 order=sanitized_order,
                 consideration_contract=self.contract,
                 offerer_balances_and_approvals=offerer_balances_and_approvals,
                 fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
                 time_based_item_params=time_based_item_params,
-                offerer_proxy=offerer_proxy,
-                fulfiller_proxy=fulfiller_proxy,
                 fulfiller=fulfiller,
-                proxy_strategy=self.config.proxy_strategy,
                 tips=tip_consideration_items,
+                offerer_operators=offerer_operators,
+                fulfiller_operators=fulfiller_operators,
                 web3=self.web3,
             )
 
         return fulfill_standard_order(
+            conduit=conduit,
             order=sanitized_order,
             units_to_fill=units_to_fill,
             total_size=order_status.total_size,
@@ -640,12 +633,11 @@ class Consideration:
             extra_data=extra_data,
             consideration_contract=self.contract,
             offerer_balances_and_approvals=offerer_balances_and_approvals,
+            offerer_operators=offerer_operators,
             fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
             time_based_item_params=time_based_item_params,
-            offerer_proxy=offerer_proxy,
-            fulfiller_proxy=fulfiller_proxy,
-            proxy_strategy=self.config.proxy_strategy,
             fulfiller=fulfiller,
+            fulfiller_operators=fulfiller_operators,
             web3=self.web3,
         )
 
@@ -653,51 +645,24 @@ class Consideration:
         self,
         fulfill_order_details: list[FulfillOrderDetails],
         account_address: Optional[str],
+        conduit: str = NO_CONDUIT,
     ):
         fulfiller = account_address or self.web3.eth.accounts[0]
 
-        unique_offerers = set(
-            [detail.order.parameters.offerer for detail in fulfill_order_details]
+        unique_offerers = list(
+            set([detail.order.parameters.offerer for detail in fulfill_order_details])
         )
 
-        offerer_proxies = [
-            self._get_legacy_conduit_proxy(offerer) for offerer in unique_offerers
+        all_offerer_operators = [
+            self._get_conduit_operators(
+                detail.order.parameters.offerer, detail.order.parameters.conduit
+            )
+            for detail in fulfill_order_details
         ]
 
-        fulfiller_proxy = self._get_legacy_conduit_proxy(fulfiller)
+        fulfiller_operators = self._get_conduit_operators(fulfiller, conduit)
 
         offerer_nonces = [self.get_nonce(offerer) for offerer in unique_offerers]
-
-        offerer_order_metadata: dict[str, dict] = {}
-
-        for index, offerer in enumerate(unique_offerers):
-            offerer_order_metadata[offerer] = {
-                "proxy": offerer_proxies[index],
-                "nonce": offerer_nonces[index],
-                "items": list(
-                    chain.from_iterable(
-                        [
-                            detail.order.parameters.offer
-                            for detail in filter(
-                                lambda x: x.order.parameters.offerer == offerer,
-                                fulfill_order_details,
-                            )
-                        ]
-                    )
-                ),
-                "criteria": list(
-                    chain.from_iterable(
-                        [
-                            detail.offer_criteria
-                            for detail in filter(
-                                lambda x: x.order.parameters.offerer == offerer,
-                                fulfill_order_details,
-                            )
-                        ]
-                    )
-                ),
-                "balances_and_approvals": [],
-            }
 
         all_offer_items = list(
             chain.from_iterable(
@@ -726,24 +691,22 @@ class Consideration:
             )
         )
 
-        unique_offerer_balances_and_approvals = [
+        all_offerer_balances_and_approvals = [
             get_balances_and_approvals(
-                owner=offerer,
-                items=offerer_order_metadata[offerer]["items"],
-                criterias=offerer_order_metadata[offerer]["criteria"],
-                proxy=offerer_order_metadata[offerer]["proxy"],
-                consideration_contract=self.contract,
+                owner=detail.order.parameters.offerer,
+                items=detail.order.parameters.offer,
+                criterias=detail.offer_criteria,
+                operators=all_offerer_operators[index],
                 web3=self.web3,
             )
-            for offerer in unique_offerers
+            for index, detail in enumerate(fulfill_order_details)
         ]
 
         fulfiller_balances_and_approvals = get_balances_and_approvals(
             owner=fulfiller,
             items=list(chain(all_offer_items, all_consideration_items)),
             criterias=list(chain(all_offer_criteria, all_consideration_criteria)),
-            proxy=fulfiller_proxy,
-            consideration_contract=self.contract,
+            operators=fulfiller_operators,
             web3=self.web3,
         )
 
@@ -752,8 +715,8 @@ class Consideration:
                 self.get_order_hash(
                     OrderComponents(
                         **detail.order.parameters.dict(),
-                        nonce=offerer_order_metadata[detail.order.parameters.offerer][
-                            "nonce"
+                        nonce=offerer_nonces[
+                            unique_offerers.index(detail.order.parameters.offerer)
                         ],
                     )
                 )
@@ -764,11 +727,6 @@ class Consideration:
         current_block = self.web3.eth.get_block("latest")
 
         current_block_timestamp = current_block.get("timestamp", int(time()))
-
-        for index, offerer in enumerate(unique_offerers):
-            offerer_order_metadata[offerer][
-                "balances_and_approvals"
-            ] = unique_offerer_balances_and_approvals[index]
 
         orders_metadata: list[FulfillOrdersMetadata] = [
             FulfillOrdersMetadata(
@@ -785,12 +743,10 @@ class Consideration:
                     for tip in details.tips
                 ],
                 extra_data=details.extra_data,
-                offerer_balances_and_approvals=offerer_order_metadata[
-                    details.order.parameters.offerer
-                ]["balances_and_approvals"],
-                offerer_proxy=offerer_order_metadata[details.order.parameters.offerer][
-                    "proxy"
+                offerer_balances_and_approvals=all_offerer_balances_and_approvals[
+                    index
                 ],
+                offerer_operators=all_offerer_operators[index],
             )
             for index, details in enumerate(fulfill_order_details)
         ]
@@ -801,8 +757,8 @@ class Consideration:
             fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
             current_block_timestamp=current_block_timestamp,
             ascending_amount_timestamp_buffer=self.config.ascending_amount_fulfillment_buffer,
-            fulfiller_proxy=fulfiller,
-            proxy_strategy=self.config.proxy_strategy,
             fulfiller=fulfiller,
             web3=self.web3,
+            conduit=conduit,
+            fulfiller_operators=fulfiller_operators,
         )

@@ -54,10 +54,9 @@ def test_erc721_buy_now_offer_via_proxy(
 ):
     erc721.mint(offerer, nft_id)
     legacy_proxy_registry.registerProxy({"from": offerer})
-    offerer_proxy = legacy_proxy_registry.proxies(offerer.address)
-    erc721.setApprovalForAll(offerer_proxy, True)
 
     use_case = consideration.create_order(
+        conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
         offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
@@ -72,6 +71,9 @@ def test_erc721_buy_now_offer_via_proxy(
 
     order = use_case.execute_all_actions()
     assert order.parameters.conduit == LEGACY_PROXY_CONDUIT
+    assert (
+        erc721.isApprovedForAll(offerer, legacy_proxy_registry.proxies(offerer)) == True
+    )
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address
@@ -182,9 +184,8 @@ def test_erc721_buy_now_with_erc20_offer_via_proxy(
     erc721.mint(offerer, nft_id)
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
     legacy_proxy_registry.registerProxy({"from": offerer})
-    offerer_proxy = legacy_proxy_registry.proxies(offerer.address)
-    erc721.setApprovalForAll(offerer_proxy, True)
     use_case = consideration.create_order(
+        conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
         offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
@@ -203,6 +204,9 @@ def test_erc721_buy_now_with_erc20_offer_via_proxy(
 
     order = use_case.execute_all_actions()
     assert order.parameters.conduit == LEGACY_PROXY_CONDUIT
+    assert (
+        erc721.isApprovedForAll(offerer, legacy_proxy_registry.proxies(offerer)) == True
+    )
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address
@@ -313,7 +317,7 @@ def test_erc721_accept_offer_fulfilled_via_proxy(
     order = use_case.execute_all_actions()
 
     fulfill_order_use_case = consideration.fulfill_order(
-        order=order, account_address=fulfiller.address
+        order=order, account_address=fulfiller.address, conduit=LEGACY_PROXY_CONDUIT
     )
 
     actions = fulfill_order_use_case.actions
@@ -368,10 +372,9 @@ def test_erc1155_buy_now_offer_via_proxy(
 ):
     erc1155.mint(offerer, nft_id, 1)
     legacy_proxy_registry.registerProxy({"from": offerer})
-    offerer_proxy = legacy_proxy_registry.proxies(offerer.address)
-    erc1155.setApprovalForAll(offerer_proxy, True)
 
     use_case = consideration.create_order(
+        conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
         offer=[
             BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)
@@ -388,6 +391,10 @@ def test_erc1155_buy_now_offer_via_proxy(
 
     order = use_case.execute_all_actions()
     assert order.parameters.conduit == LEGACY_PROXY_CONDUIT
+    assert (
+        erc1155.isApprovedForAll(offerer, legacy_proxy_registry.proxies(offerer))
+        == True
+    )
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address
@@ -502,9 +509,8 @@ def test_erc1155_buy_now_with_erc20_offer_via_proxy(
     erc1155.mint(offerer, nft_id, 1)
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
     legacy_proxy_registry.registerProxy({"from": offerer})
-    offerer_proxy = legacy_proxy_registry.proxies(offerer.address)
-    erc1155.setApprovalForAll(offerer_proxy, True)
     use_case = consideration.create_order(
+        conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
         offer=[
             BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)
@@ -525,6 +531,10 @@ def test_erc1155_buy_now_with_erc20_offer_via_proxy(
 
     order = use_case.execute_all_actions()
     assert order.parameters.conduit == LEGACY_PROXY_CONDUIT
+    assert (
+        erc1155.isApprovedForAll(offerer, legacy_proxy_registry.proxies(offerer))
+        == True
+    )
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address
@@ -641,7 +651,9 @@ def test_erc1155_accept_offer_fulfilled_via_proxy(
     order = use_case.execute_all_actions()
 
     fulfill_order_use_case = consideration.fulfill_order(
-        order=order, account_address=fulfiller.address
+        order=order,
+        account_address=fulfiller.address,
+        conduit=LEGACY_PROXY_CONDUIT,
     )
 
     actions = fulfill_order_use_case.actions
