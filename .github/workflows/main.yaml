@@ -42,8 +42,5 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
-      - name: Install library
-        run: poetry install --no-interaction
-
       - name: Run Tests
         run: poetry run brownie test --network hardhat
