@@ -9,21 +9,15 @@ from web3.constants import ADDRESS_ZERO
 from web3.contract import Contract
 from web3.types import TxParams
 
-from consideration.constants import (
-    LEGACY_PROXY_CONDUIT,
-    NO_CONDUIT,
-    BasicOrderRouteType,
-    ItemType,
-    ProxyStrategy,
-)
+from consideration.constants import BasicOrderRouteType, ItemType
 from consideration.types import (
+    ApprovalOperators,
     BalancesAndApprovals,
     ConsiderationItem,
     ExchangeAction,
     FulfillmentComponent,
     FulfillOrderUseCase,
     InputCriteria,
-    InsufficientApproval,
     InsufficientApprovals,
     Order,
     OrderParameters,
@@ -32,7 +26,6 @@ from consideration.types import (
 from consideration.utils.balance_and_approval_check import (
     get_approval_actions,
     use_offerer_proxy,
-    use_proxy_from_approvals,
     validate_basic_fulfill_balances_and_approvals,
     validate_standard_fulfill_balances_and_approvals,
 )
@@ -45,6 +38,7 @@ from consideration.utils.item import (
     get_summed_token_and_identifier_amounts,
     is_criteria_item,
     is_currency_item,
+    is_erc20_item,
     is_erc721_item,
     is_native_currency_item,
 )
@@ -221,15 +215,15 @@ def get_basic_order_route_type(
 
 
 def fulfill_basic_order(
+    conduit: str,
     order: Order,
     consideration_contract: Contract,
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: TimeBasedItemParams,
     fulfiller: str,
-    offerer_proxy: str,
-    fulfiller_proxy: str,
-    proxy_strategy: ProxyStrategy,
+    offerer_operators: ApprovalOperators,
+    fulfiller_operators: ApprovalOperators,
     tips: list[ConsiderationItem],
     web3: Web3,
 ):
@@ -278,22 +272,8 @@ def fulfill_basic_order(
         offerer_balances_and_approvals=offerer_balances_and_approvals,
         fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
         time_based_item_params=time_based_item_params,
-        consideration_contract=consideration_contract,
-        offerer_proxy=offerer_proxy,
-        fulfiller_proxy=fulfiller_proxy,
-        proxy_strategy=proxy_strategy,
-    )
-
-    use_fulfiller_proxy = use_proxy_from_approvals(
-        insufficient_owner_approvals=insufficient_approvals.insufficient_owner_approvals,
-        insufficient_proxy_approvals=insufficient_approvals.insufficient_proxy_approvals,
-        proxy_strategy=proxy_strategy,
-    )
-
-    approvals_to_use = (
-        insufficient_approvals.insufficient_proxy_approvals
-        if use_fulfiller_proxy
-        else insufficient_approvals.insufficient_owner_approvals
+        offerer_operators=offerer_operators,
+        fulfiller_operators=fulfiller_operators,
     )
 
     basic_order_parameters = {
@@ -316,14 +296,14 @@ def fulfill_basic_order(
         "salt": order.parameters.salt,
         "totalOriginalAdditionalRecipients": len(order.parameters.consideration) - 1,
         "signature": order.signature,
-        "fulfillerConduit": LEGACY_PROXY_CONDUIT if use_fulfiller_proxy else NO_CONDUIT,
+        "fulfillerConduit": conduit,
         "additionalRecipients": additional_recipients,
         "zoneHash": order.parameters.zoneHash,
     }
 
     payable_overrides: TxParams = {"value": Wei(total_native_amount), "from": fulfiller}
     approval_actions = get_approval_actions(
-        insufficient_approvals=approvals_to_use,
+        insufficient_approvals=insufficient_approvals,
         web3=web3,
         account_address=fulfiller,
     )
@@ -344,6 +324,7 @@ def fulfill_basic_order(
 
 def fulfill_standard_order(
     *,
+    conduit: str,
     order: Order,
     units_to_fill: int = 0,
     total_size: int,
@@ -356,9 +337,8 @@ def fulfill_standard_order(
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: TimeBasedItemParams,
-    offerer_proxy: str,
-    fulfiller_proxy: str,
-    proxy_strategy: ProxyStrategy,
+    offerer_operators: ApprovalOperators,
+    fulfiller_operators: ApprovalOperators,
     fulfiller: str,
     web3: Web3,
 ):
@@ -422,22 +402,8 @@ def fulfill_standard_order(
         offerer_balances_and_approvals=offerer_balances_and_approvals,
         fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
         time_based_item_params=time_based_item_params,
-        consideration_contract=consideration_contract,
-        offerer_proxy=offerer_proxy,
-        fulfiller_proxy=fulfiller_proxy,
-        proxy_strategy=proxy_strategy,
-    )
-
-    use_proxy_for_fulfiller = use_proxy_from_approvals(
-        insufficient_owner_approvals=insufficient_approvals.insufficient_owner_approvals,
-        insufficient_proxy_approvals=insufficient_approvals.insufficient_proxy_approvals,
-        proxy_strategy=proxy_strategy,
-    )
-
-    approvals_to_use = (
-        insufficient_approvals.insufficient_proxy_approvals
-        if use_proxy_for_fulfiller
-        else insufficient_approvals.insufficient_owner_approvals
+        offerer_operators=offerer_operators,
+        fulfiller_operators=fulfiller_operators,
     )
 
     has_criteria_items = bool(offer_criteria_items) or bool(
@@ -445,7 +411,9 @@ def fulfill_standard_order(
     )
 
     approval_actions = get_approval_actions(
-        insufficient_approvals=approvals_to_use, web3=web3, account_address=fulfiller
+        insufficient_approvals=insufficient_approvals,
+        web3=web3,
+        account_address=fulfiller,
     )
 
     use_advanced = bool(units_to_fill) or has_criteria_items
@@ -470,8 +438,6 @@ def fulfill_standard_order(
         }
     )
 
-    fulfiller_conduit = LEGACY_PROXY_CONDUIT if use_proxy_for_fulfiller else NO_CONDUIT
-
     payable_overrides: TxParams = {
         "value": Wei(total_native_amount),
         "from": fulfiller,
@@ -495,14 +461,14 @@ def fulfill_standard_order(
                 )
                 if has_criteria_items
                 else [],
-                fulfiller_conduit,
+                conduit,
             ),
             payable_overrides,
         )
         if use_advanced
         else get_transaction_methods(
             consideration_contract.functions.fulfillOrder(
-                order_accounting_for_tips.dict(), fulfiller_conduit
+                order_accounting_for_tips.dict(), conduit
             ),
             payable_overrides,
         )
@@ -525,17 +491,17 @@ class FulfillOrdersMetadata(BaseModel):
     tips: list[ConsiderationItem]
     extra_data: str
     offerer_balances_and_approvals: BalancesAndApprovals
-    offerer_proxy: str
+    offerer_operators: ApprovalOperators
 
 
 def fulfill_available_orders(
     orders_metadata: list[FulfillOrdersMetadata],
     consideration_contract: Contract,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
+    fulfiller_operators: ApprovalOperators,
     current_block_timestamp: int,
     ascending_amount_timestamp_buffer: int,
-    fulfiller_proxy: str,
-    proxy_strategy: ProxyStrategy,
+    conduit: str,
     fulfiller: str,
     web3: Web3,
 ):
@@ -575,12 +541,10 @@ def fulfill_available_orders(
     )
 
     total_native_amount = 0
-    total_insufficient_owner_approvals: list[InsufficientApproval] = []
-    total_insufficient_proxy_approvals: list[InsufficientApproval] = []
+    total_insufficient_approvals: InsufficientApprovals = []
     has_criteria_items = False
 
     def add_approval_if_needed(
-        total_insufficient_approvals: InsufficientApprovals,
         order_insufficient_approvals: InsufficientApprovals,
     ):
         for insufficient_approval in order_insufficient_approvals:
@@ -622,10 +586,8 @@ def fulfill_available_orders(
             offerer_balances_and_approvals=order_metadata.offerer_balances_and_approvals,
             fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
             time_based_item_params=time_based_item_params,
-            consideration_contract=consideration_contract,
-            offerer_proxy=order_metadata.offerer_proxy,
-            fulfiller_proxy=fulfiller_proxy,
-            proxy_strategy=proxy_strategy,
+            offerer_operators=order_metadata.offerer_operators,
+            fulfiller_operators=fulfiller_operators,
         )
 
         offer_criteria_items = list(
@@ -650,41 +612,21 @@ def fulfill_available_orders(
             )
 
         add_approval_if_needed(
-            total_insufficient_owner_approvals,
-            insufficient_approvals.insufficient_owner_approvals,
+            insufficient_approvals,
         )
-        add_approval_if_needed(
-            total_insufficient_proxy_approvals,
-            insufficient_approvals.insufficient_proxy_approvals,
-        )
-
-    use_proxy_for_fulfiller = use_proxy_from_approvals(
-        insufficient_owner_approvals=total_insufficient_proxy_approvals,
-        insufficient_proxy_approvals=total_insufficient_proxy_approvals,
-        proxy_strategy=proxy_strategy,
-    )
-
-    approvals_to_use = (
-        total_insufficient_proxy_approvals
-        if use_proxy_for_fulfiller
-        else total_insufficient_owner_approvals
-    )
 
     payable_overrides: TxParams = {"value": Wei(total_native_amount), "from": fulfiller}
 
     approval_actions = get_approval_actions(
-        insufficient_approvals=approvals_to_use, web3=web3, account_address=fulfiller
+        insufficient_approvals=total_insufficient_approvals,
+        web3=web3,
+        account_address=fulfiller,
     )
 
     def map_to_advanced_order_with_tip(order_metadata: FulfillOrdersMetadata):
-        max_units = get_maximum_size_for_order(order_metadata.order)
-        units_gcd = gcd(order_metadata.units_to_fill, max_units)
-        numerator = (
-            order_metadata.units_to_fill // units_gcd
-            if order_metadata.units_to_fill
-            else 1
+        numerator, denominator = get_advanced_order_numerator_denominator(
+            order_metadata.order, order_metadata.units_to_fill
         )
-        denominator = max_units // units_gcd if order_metadata.units_to_fill else 1
 
         consideration_including_tips = list(
             chain(order_metadata.order.parameters.consideration, order_metadata.tips)
@@ -717,8 +659,6 @@ def fulfill_available_orders(
         consideration_fulfillments,
     ) = generate_fulfill_orders_fulfillments(orders_metadata)
 
-    fulfiller_conduit = LEGACY_PROXY_CONDUIT if use_proxy_for_fulfiller else NO_CONDUIT
-
     exchange_action = ExchangeAction(
         transaction_methods=get_transaction_methods(
             consideration_contract.functions.fulfillAvailableAdvancedOrders(
@@ -748,7 +688,7 @@ def fulfill_available_orders(
                         for fulfillment in consideration_fulfillments
                     ]
                 ),
-                fulfiller_conduit,
+                conduit,
             ),
             payable_overrides,
         )
@@ -776,13 +716,15 @@ def generate_fulfill_orders_fulfillments(
             order_metadata.order.parameters.offer, order_metadata.offer_criteria
         )
 
-        source = (
-            order_metadata.offerer_proxy
-            if use_offerer_proxy(order_metadata.order.parameters.conduit)
-            else order_metadata.order.parameters.offerer
-        )
-
         for item_index, item in enumerate(order_metadata.order.parameters.offer):
+            if use_offerer_proxy(order_metadata.order.parameters.conduit):
+                source = (
+                    order_metadata.offerer_operators.erc20_operator
+                    if is_erc20_item(item.itemType)
+                    else order_metadata.offerer_operators.operator
+                )
+            else:
+                source = order_metadata.order.parameters.offerer
             aggregate_key = (
                 hash_aggregate_key(
                     source,
@@ -857,3 +799,12 @@ def validate_and_sanitize_from_order_status(
         return Order(parameters=order.parameters, signature="0x")
 
     return order
+
+
+def get_advanced_order_numerator_denominator(order: Order, units_to_fill: int):
+    max_units = get_maximum_size_for_order(order)
+    units_gcd = gcd(units_to_fill, max_units)
+    numerator = units_to_fill // units_gcd if units_to_fill else 1
+    denominator = max_units // units_gcd if units_to_fill else 1
+
+    return (numerator, denominator)

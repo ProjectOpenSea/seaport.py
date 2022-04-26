@@ -1,30 +1,24 @@
-from typing import (
-    Any,
-    Callable,
-    Literal,
-    Optional,
-    Protocol,
-    TypedDict,
-    Union,
-    runtime_checkable,
-)
+from typing import Any, Callable, Optional, Protocol, Union, runtime_checkable
 
 from eth_typing.evm import ChecksumAddress
 from hexbytes import HexBytes
 from pydantic import BaseModel
-from typing_extensions import NotRequired
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.types import TxParams
 
-from consideration.constants import ItemType, OrderType, ProxyStrategy, Side
+from consideration.constants import ItemType, Network, OrderType, Side
 from consideration.utils.pydantic import BaseModelWithEnumValues
 
 
 class ContractOverrides(BaseModel):
-    contract_address: Optional[ChecksumAddress]
-    legacy_proxy_registry_address: Optional[ChecksumAddress]
-    legacy_token_transfer_proxy_address: Optional[ChecksumAddress]
+    contract_address: Optional[ChecksumAddress] = Web3.toChecksumAddress(ADDRESS_ZERO)
+    legacy_proxy_registry_address: Optional[ChecksumAddress] = Web3.toChecksumAddress(
+        ADDRESS_ZERO
+    )
+    legacy_token_transfer_proxy_address: Optional[
+        ChecksumAddress
+    ] = Web3.toChecksumAddress(ADDRESS_ZERO)
 
 
 class ConsiderationConfig(BaseModel):
@@ -34,14 +28,13 @@ class ConsiderationConfig(BaseModel):
     # Allow users to optionally skip balance and approval checks
     balance_and_approval_checks_on_order_creation: bool = True
 
-    # Defaults to use proxy if it would result in zero approvals needed. Otherwise, users can specify the proxy strategy
-    # they want to use, relevant for creating orders or fulfilling orders
-    proxy_strategy: ProxyStrategy = ProxyStrategy.IF_ZERO_APPROVALS_NEEDED
-
     overrides: ContractOverrides = ContractOverrides(
         contract_address=Web3.toChecksumAddress(ADDRESS_ZERO),
         legacy_proxy_registry_address=Web3.toChecksumAddress(ADDRESS_ZERO),
+        legacy_token_transfer_proxy_address=Web3.toChecksumAddress(ADDRESS_ZERO),
     )
+
+    network: Network = Network.MAINNET
 
 
 class OfferItem(BaseModelWithEnumValues):
@@ -193,8 +186,7 @@ class BalanceAndApproval(BaseModelWithEnumValues):
     token: str
     identifier_or_criteria: int
     balance: int
-    owner_approved_amount: int
-    proxy_approved_amount: int
+    approved_amount: int
     item_type: ItemType
 
 
@@ -315,3 +307,8 @@ class FulfillOrderDetails(BaseModel):
 class FulfillmentComponent(BaseModel):
     orderIndex: int
     itemIndex: int
+
+
+class ApprovalOperators(BaseModel):
+    operator: str
+    erc20_operator: str

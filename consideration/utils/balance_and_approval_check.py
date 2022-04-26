@@ -2,14 +2,13 @@ from typing import Literal, Optional, Sequence, Union
 
 from pydantic import BaseModel
 from web3 import Web3
-from web3.constants import ADDRESS_ZERO
-from web3.contract import Contract
 
 from consideration.abi.ERC20 import ERC20_ABI
 from consideration.abi.ERC721 import ERC721_ABI
-from consideration.constants import LEGACY_PROXY_CONDUIT, MAX_INT, ProxyStrategy
+from consideration.constants import LEGACY_PROXY_CONDUIT, MAX_INT
 from consideration.types import (
     ApprovalAction,
+    ApprovalOperators,
     BalanceAndApproval,
     BalancesAndApprovals,
     ConsiderationItem,
@@ -20,7 +19,6 @@ from consideration.types import (
     InsufficientBalances,
     Item,
     OfferItem,
-    TransactionMethods,
 )
 from consideration.utils.balance import balance_of
 from consideration.utils.item import (
@@ -132,8 +130,7 @@ def get_balances_and_approvals(
     owner: str,
     items: Sequence[Item],
     criterias: list[InputCriteria],
-    proxy: str,
-    consideration_contract: Contract,
+    operators: ApprovalOperators,
     web3: Web3,
 ):
     item_index_to_criteria = get_item_index_to_criteria_map(
@@ -142,41 +139,25 @@ def get_balances_and_approvals(
 
     def map_item_to_balances_and_approval(index_and_item: tuple[int, Item]):
         index, item = index_and_item
-        owner_approved_amount = 0
-        proxy_approved_amount = 0
+        approved_amount = 0
 
-        # If erc721 or erc1155 check both consideration and proxy approvals unless config says ignore proxy
         if is_erc721_item(item.itemType) or is_erc1155_item(item.itemType):
-            owner_approved_amount = approved_item_amount(
+            approved_amount = approved_item_amount(
                 owner=owner,
                 item=item,
-                operator=consideration_contract.address,
+                operator=operators.operator,
                 web3=web3,
             )
-
-            if proxy != ADDRESS_ZERO:
-                proxy_approved_amount = approved_item_amount(
-                    owner=owner,
-                    item=item,
-                    operator=proxy,
-                    web3=web3,
-                )
-        # If erc20 check just consideration contract for approvals
         elif is_erc20_item(item.itemType):
-            owner_approved_amount = approved_item_amount(
+            approved_amount = approved_item_amount(
                 owner=owner,
                 item=item,
-                operator=consideration_contract.address,
+                operator=operators.erc20_operator,
                 web3=web3,
             )
-            # There technically is no proxy approved amount for ERC-20s.
-            # Making it the same as the owner approved amount except changing the operator
-            # to be the consideration contract
-            proxy_approved_amount = owner_approved_amount
         else:
             # If native token, we don't need to check for approvals
-            owner_approved_amount = MAX_INT
-            proxy_approved_amount = MAX_INT
+            approved_amount = MAX_INT
 
         return BalanceAndApproval(
             token=item.token,
@@ -189,8 +170,7 @@ def get_balances_and_approvals(
                 criteria=item_index_to_criteria.get(index),
                 web3=web3,
             ),
-            owner_approved_amount=owner_approved_amount,
-            proxy_approved_amount=proxy_approved_amount,
+            approved_amount=approved_amount,
             item_type=item.itemType,
         )
 
@@ -199,17 +179,14 @@ def get_balances_and_approvals(
 
 class InsufficientBalanceAndApprovalAmounts(BaseModel):
     insufficient_balances: InsufficientBalances
-    insufficient_owner_approvals: InsufficientApprovals
-    insufficient_proxy_approvals: InsufficientApprovals
+    insufficient_approvals: InsufficientApprovals
 
 
 def get_insufficient_balance_and_approval_amounts(
     *,
     balances_and_approvals: BalancesAndApprovals,
     token_and_identifier_amounts: TokenAndIdentifierAmounts,
-    proxy: str,
-    proxy_strategy: ProxyStrategy,
-    consideration_contract: Contract,
+    operators: ApprovalOperators,
 ):
     token_and_identifier_and_amount_needed_list: list[tuple[str, int, int]] = []
 
@@ -222,8 +199,7 @@ def get_insufficient_balance_and_approval_amounts(
     def filter_balances_or_approvals(
         filter_key: Union[
             Literal["balance"],
-            Literal["owner_approved_amount"],
-            Literal["proxy_approved_amount"],
+            Literal["approved_amount"],
         ]
     ):
         def filter_balance_or_approval(
@@ -286,47 +262,25 @@ def get_insufficient_balance_and_approval_amounts(
             operator="",
         )
 
-    (
-        insufficient_balances,
-        insufficient_owner_approvals,
-        insufficient_proxy_approvals,
-    ) = (
+    (insufficient_balances, insufficient_approvals,) = (
         filter_balances_or_approvals("balance"),
-        list(
-            map(map_to_approval, filter_balances_or_approvals("owner_approved_amount"))
-        ),
-        list(
-            map(map_to_approval, filter_balances_or_approvals("proxy_approved_amount"))
-        ),
+        list(map(map_to_approval, filter_balances_or_approvals("approved_amount"))),
     )
 
     def map_operator(
         insufficient_approval: InsufficientApproval,
     ) -> InsufficientApproval:
-        # We always use the consideration contract as the operator for ERC-20s
-        if is_erc20_item(insufficient_approval.item_type):
-            operator = consideration_contract.address
-        else:
-            operator = (
-                proxy
-                if use_proxy_from_approvals(
-                    insufficient_owner_approvals=insufficient_owner_approvals,
-                    insufficient_proxy_approvals=insufficient_proxy_approvals,
-                    proxy_strategy=proxy_strategy,
-                )
-                else consideration_contract.address
-            )
+        operator = (
+            operators.erc20_operator
+            if is_erc20_item(insufficient_approval.item_type)
+            else operators.operator
+        )
 
         return insufficient_approval.copy(update={"operator": operator})
 
     return InsufficientBalanceAndApprovalAmounts(
         insufficient_balances=insufficient_balances,
-        insufficient_owner_approvals=list(
-            map(map_operator, insufficient_owner_approvals)
-        ),
-        insufficient_proxy_approvals=list(
-            map(map_operator, insufficient_proxy_approvals)
-        ),
+        insufficient_approvals=list(map(map_operator, insufficient_approvals)),
     )
 
 
@@ -342,9 +296,7 @@ def validate_offer_balances_and_approvals(
     criterias: list[InputCriteria],
     balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams] = None,
-    consideration_contract: Contract,
-    proxy: str,
-    proxy_strategy: ProxyStrategy,
+    operators: ApprovalOperators,
     throw_on_insufficient_balances=True,
     throw_on_insufficient_approvals=False,
 ):
@@ -360,9 +312,7 @@ def validate_offer_balances_and_approvals(
                 if time_based_item_params
                 else None,
             ),
-            consideration_contract=consideration_contract,
-            proxy=proxy,
-            proxy_strategy=proxy_strategy,
+            operators=operators,
         )
     )
 
@@ -374,16 +324,13 @@ def validate_offer_balances_and_approvals(
             "The offerer does not have the amount needed to create or fulfill."
         )
 
-    approvals_to_check = (
-        insufficient_balance_and_approval_amounts.insufficient_proxy_approvals
-        if use_offerer_proxy(conduit)
-        else insufficient_balance_and_approval_amounts.insufficient_owner_approvals
-    )
-
-    if throw_on_insufficient_approvals and len(approvals_to_check) > 0:
+    if (
+        throw_on_insufficient_approvals
+        and insufficient_balance_and_approval_amounts.insufficient_approvals
+    ):
         raise ValueError("The offerer does not have the sufficient approvals.")
 
-    return approvals_to_check
+    return insufficient_balance_and_approval_amounts.insufficient_approvals
 
 
 # When fulfilling a basic order, the following requirements need to be checked to ensure that the order will be fulfillable:
@@ -408,11 +355,9 @@ def validate_basic_fulfill_balances_and_approvals(
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
-    consideration_contract: Contract,
-    offerer_proxy: str,
-    fulfiller_proxy: str,
-    proxy_strategy: ProxyStrategy,
-):
+    offerer_operators: ApprovalOperators,
+    fulfiller_operators: ApprovalOperators,
+) -> InsufficientApprovals:
     validate_offer_balances_and_approvals(
         offer=offer,
         conduit=conduit,
@@ -420,9 +365,7 @@ def validate_basic_fulfill_balances_and_approvals(
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
-        consideration_contract=consideration_contract,
-        proxy=offerer_proxy,
-        proxy_strategy=proxy_strategy,
+        operators=offerer_operators,
     )
 
     consideration_without_offer_item_type = list(
@@ -441,16 +384,14 @@ def validate_basic_fulfill_balances_and_approvals(
                 if time_based_item_params
                 else None,
             ),
-            consideration_contract=consideration_contract,
-            proxy=fulfiller_proxy,
-            proxy_strategy=proxy_strategy,
+            operators=fulfiller_operators,
         )
     )
 
     if insufficient_balance_and_approval_amounts.insufficient_balances:
         raise ValueError("The fulfiller does not have the balances needed to fulfill.")
 
-    return insufficient_balance_and_approval_amounts
+    return insufficient_balance_and_approval_amounts.insufficient_approvals
 
 
 # When fulfilling a standard order, the following requirements need to be checked to ensure that the order will be fulfillable:
@@ -475,11 +416,9 @@ def validate_standard_fulfill_balances_and_approvals(
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
-    consideration_contract: Contract,
-    offerer_proxy: str,
-    fulfiller_proxy: str,
-    proxy_strategy: ProxyStrategy,
-):
+    offerer_operators: ApprovalOperators,
+    fulfiller_operators: ApprovalOperators,
+) -> InsufficientApprovals:
     validate_offer_balances_and_approvals(
         offer=offer,
         conduit=conduit,
@@ -487,9 +426,7 @@ def validate_standard_fulfill_balances_and_approvals(
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
-        consideration_contract=consideration_contract,
-        proxy=offerer_proxy,
-        proxy_strategy=proxy_strategy,
+        operators=offerer_operators,
     )
 
     summed_offer_amounts = get_summed_token_and_identifier_amounts(
@@ -536,29 +473,14 @@ def validate_standard_fulfill_balances_and_approvals(
             if time_based_item_params
             else None,
         ),
-        consideration_contract=consideration_contract,
-        proxy=fulfiller_proxy,
-        proxy_strategy=proxy_strategy,
+        operators=fulfiller_operators,
     )
 
     if insufficient_balance_and_approval_amounts.insufficient_balances:
         raise ValueError("The fulfiller does not have the balances needed to fulfill.")
 
-    return insufficient_balance_and_approval_amounts
+    return insufficient_balance_and_approval_amounts.insufficient_approvals
 
 
 def use_offerer_proxy(conduit: str):
     return conduit == LEGACY_PROXY_CONDUIT
-
-
-def use_proxy_from_approvals(
-    insufficient_owner_approvals: InsufficientApprovals,
-    insufficient_proxy_approvals: InsufficientApprovals,
-    proxy_strategy: ProxyStrategy,
-):
-    if proxy_strategy == ProxyStrategy.IF_ZERO_APPROVALS_NEEDED:
-        return (
-            len(insufficient_proxy_approvals) < len(insufficient_owner_approvals)
-            and len(insufficient_owner_approvals) != 0
-        )
-    return proxy_strategy == ProxyStrategy.ALWAYS
