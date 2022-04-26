@@ -6,6 +6,7 @@ import "consideration/contracts/Consideration.sol";
 contract TestConsideration is Consideration {
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
-    ) Consideration(legacyProxyRegistry, requiredProxyImplementation) {}
+    ) Consideration(legacyProxyRegistry, legacyTokenTransferProxy, requiredProxyImplementation) {}
 }

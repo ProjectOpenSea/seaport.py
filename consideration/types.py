@@ -24,6 +24,7 @@ from consideration.utils.pydantic import BaseModelWithEnumValues
 class ContractOverrides(BaseModel):
     contract_address: Optional[ChecksumAddress]
     legacy_proxy_registry_address: Optional[ChecksumAddress]
+    legacy_token_transfer_proxy_address: Optional[ChecksumAddress]
 
 
 class ConsiderationConfig(BaseModel):
