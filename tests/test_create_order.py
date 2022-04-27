@@ -7,15 +7,15 @@ from consideration.consideration import Consideration
 from consideration.constants import MAX_INT, ItemType, OrderType
 from consideration.types import (
     ApprovalAction,
-    ConsiderationErc721Item,
-    OfferErc721Item,
-    OfferErc1155Item,
     ConsiderationConfig,
     ConsiderationCurrencyItem,
+    ConsiderationErc721Item,
     ContractOverrides,
     CreateOrderAction,
     Fee,
     OfferCurrencyItem,
+    OfferErc721Item,
+    OfferErc1155Item,
 )
 from consideration.utils.order import generate_random_salt
 

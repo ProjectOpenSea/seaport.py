@@ -1,11 +1,36 @@
-from typing import Sequence
+from enum import Enum
+from typing import TYPE_CHECKING, Optional, Sequence, Union, cast
 
 from pydantic import BaseModel
+from pydantic.utils import deep_update
+
+if TYPE_CHECKING:
+    from pydantic.typing import AbstractSetIntStr, DictStrAny, MappingIntStrAny
 
 
 class BaseModelWithEnumValues(BaseModel):
-    class Config:
-        use_enum_values = True
+    """
+    Using this helper model class as the built-in pydantic use_enum_values breaks type guarantees
+    when accessing enums on the model directly
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+
+    def dict(self, *args, **kwargs) -> "DictStrAny":
+        resolved_dict = super().dict(**kwargs)
+
+        return with_enum_values(resolved_dict)
+
+
+def with_enum_values(element):
+    if isinstance(element, dict):
+        return {k: with_enum_values(v) for k, v in element.items()}
+    elif isinstance(element, list):
+        return [with_enum_values(el) for el in element]
+    elif isinstance(element, Enum):
+        return element.value
+    return element
 
 
 def parse_model_list(models: Sequence[BaseModel]):

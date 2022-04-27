@@ -3,10 +3,10 @@ from web3 import Web3
 from consideration.consideration import Consideration
 from consideration.constants import ItemType, OrderType
 from consideration.types import (
-    ConsiderationErc1155Item,
-    OfferErc1155Item,
     ConsiderationCurrencyItem,
+    ConsiderationErc1155Item,
     OfferCurrencyItem,
+    OfferErc1155Item,
 )
 
 nft_id = 1
@@ -39,7 +39,7 @@ def test_partial_erc1155_buy_now(
 
     order = use_case.execute_all_actions()
 
-    assert order.parameters.orderType == OrderType.PARTIAL_OPEN.value
+    assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
@@ -215,7 +215,7 @@ def test_partial_multiple_erc1155_buy_now(
 
     order = use_case.execute_all_actions()
 
-    assert order.parameters.orderType == OrderType.PARTIAL_OPEN.value
+    assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
@@ -268,7 +268,7 @@ def test_partial_erc1155_multiple_buy_now_with_erc20(
 
     order = use_case.execute_all_actions()
 
-    assert order.parameters.orderType == OrderType.PARTIAL_OPEN.value
+    assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
@@ -338,7 +338,7 @@ def test_partial_erc1155_multiple_accept_offer(
 
     order = use_case.execute_all_actions()
 
-    assert order.parameters.orderType == OrderType.PARTIAL_OPEN.value
+    assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
     fulfill_order_use_case = consideration.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2

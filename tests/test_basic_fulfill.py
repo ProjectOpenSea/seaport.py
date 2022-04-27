@@ -4,12 +4,12 @@ from web3 import Web3
 from consideration.consideration import Consideration
 from consideration.constants import LEGACY_PROXY_CONDUIT, ItemType
 from consideration.types import (
+    ConsiderationCurrencyItem,
     ConsiderationErc721Item,
     ConsiderationErc1155Item,
+    OfferCurrencyItem,
     OfferErc721Item,
     OfferErc1155Item,
-    ConsiderationCurrencyItem,
-    OfferCurrencyItem,
 )
 
 nft_id = 1

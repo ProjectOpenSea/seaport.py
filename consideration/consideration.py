@@ -475,7 +475,7 @@ class Consideration:
                                 + "".join(
                                     [
                                         offer_item_type_hash[2:],
-                                        str(item.itemType).zfill(64),
+                                        str(item.itemType.value).zfill(64),
                                         item.token[2:].zfill(64),
                                         hex(item.identifierOrCriteria)[2:].zfill(64),
                                         hex(item.startAmount)[2:].zfill(64),
@@ -503,7 +503,7 @@ class Consideration:
                                 + "".join(
                                     [
                                         consideration_item_type_hash[2:],
-                                        str(item.itemType).zfill(64),
+                                        str(item.itemType.value).zfill(64),
                                         item.token[2:].zfill(64),
                                         hex(item.identifierOrCriteria)[2:].zfill(64),
                                         hex(item.startAmount)[2:].zfill(64),
@@ -530,7 +530,7 @@ class Consideration:
                         order_components.zone[2:].zfill(64),
                         offer_hash[2:],
                         consideration_hash[2:],
-                        str(order_components.orderType).zfill(64),
+                        str(order_components.orderType.value).zfill(64),
                         hex(order_components.startTime)[2:].zfill(64),
                         hex(order_components.endTime)[2:].zfill(64),
                         hex(order_components.salt)[2:].zfill(64),

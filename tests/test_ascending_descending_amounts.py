@@ -4,9 +4,9 @@ from web3.types import RPCEndpoint
 from consideration.consideration import Consideration
 from consideration.constants import ItemType
 from consideration.types import (
+    ConsiderationCurrencyItem,
     OfferErc721Item,
     OfferErc1155Item,
-    ConsiderationCurrencyItem,
 )
 
 nft_id = 1
