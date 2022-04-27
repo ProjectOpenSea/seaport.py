@@ -5,13 +5,9 @@ from web3 import Web3
 from consideration.consideration import Consideration
 from consideration.constants import ItemType
 from consideration.types import (
-    BasicConsiderationErc721Item,
-    BasicConsiderationErc1155Item,
     BasicOfferErc721Item,
-    BasicOfferErc1155Item,
     ConsiderationCurrencyItem,
     FulfillOrderDetails,
-    OfferCurrencyItem,
 )
 
 

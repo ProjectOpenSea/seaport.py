@@ -4,13 +4,7 @@ from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 
 from consideration.consideration import Consideration
-from consideration.constants import (
-    LEGACY_PROXY_CONDUIT,
-    MAX_INT,
-    ItemType,
-    OrderType,
-    ProxyStrategy,
-)
+from consideration.constants import MAX_INT, ItemType, OrderType
 from consideration.types import (
     ApprovalAction,
     BasicConsiderationErc721Item,

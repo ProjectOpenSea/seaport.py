@@ -1,3 +1,4 @@
+import json
 from itertools import chain
 from time import time
 from typing import Optional, cast
@@ -280,7 +281,12 @@ class Consideration:
                 parameters=order_parameters, nonce=resolved_nonce, signature=signature
             )
 
-        create_order_action = CreateOrderAction(create_order=create_order_fn)
+        create_order_action = CreateOrderAction(
+            create_order=create_order_fn,
+            get_message_to_sign=lambda: self._get_message_to_sign(
+                order_parameters=order_parameters, nonce=resolved_nonce
+            ),
+        )
 
         actions = list(chain(approval_actions, [create_order_action]))
 
@@ -291,13 +297,9 @@ class Consideration:
             ),
         )
 
-    def sign_order(
-        self,
-        *,
-        order_parameters: OrderParameters,
-        nonce: int,
-        account_address: str,
-    ):
+    def _get_message_to_sign(
+        self, *, order_parameters: OrderParameters, nonce: int
+    ) -> str:
         domain_data = {
             "name": CONSIDERATION_CONTRACT_NAME,
             "version": CONSIDERATION_CONTRACT_VERSION,
@@ -323,6 +325,19 @@ class Consideration:
             "types": EIP_712_ORDER_TYPE,
             "primaryType": "OrderComponents",
         }
+
+        return json.dumps(payload)
+
+    def sign_order(
+        self,
+        *,
+        order_parameters: OrderParameters,
+        nonce: int,
+        account_address: str,
+    ):
+        payload = self._get_message_to_sign(
+            order_parameters=order_parameters, nonce=nonce
+        )
 
         # Default to using signTypedData_v4. If that's not possible, fallback to signTypedData
         response = self.web3.provider.make_request(

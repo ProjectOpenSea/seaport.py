@@ -256,6 +256,7 @@ class CreatedOrder(Order):
 
 class CreateOrderAction(BaseModel):
     type = "create"
+    get_message_to_sign: Callable[[], str]
     create_order: Callable[[], CreatedOrder]
 
 
