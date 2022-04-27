@@ -6,8 +6,8 @@ from web3.constants import ADDRESS_ZERO
 
 from consideration.constants import ONE_HUNDRED_PERCENT_BP, ItemType
 from consideration.types import (
-    BasicOfferErc721Item,
-    BasicOfferErc1155Item,
+    OfferErc721Item,
+    OfferErc1155Item,
     ConsiderationItem,
     CreateInputItem,
     Fee,
@@ -82,7 +82,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
                 startAmount=item.amount or 1,
                 endAmount=item.end_amount or item.amount or 1,
             )
-        elif isinstance(item, BasicOfferErc721Item):
+        elif isinstance(item, OfferErc721Item):
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,
@@ -90,7 +90,7 @@ def map_input_item_to_offer_item(item: CreateInputItem) -> OfferItem:
                 startAmount=1,
                 endAmount=1,
             )
-        elif isinstance(item, BasicOfferErc1155Item):
+        elif isinstance(item, OfferErc1155Item):
             return OfferItem(
                 itemType=item.item_type,
                 token=item.token,

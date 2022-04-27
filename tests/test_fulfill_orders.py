@@ -5,7 +5,7 @@ from web3 import Web3
 from consideration.consideration import Consideration
 from consideration.constants import ItemType
 from consideration.types import (
-    BasicOfferErc721Item,
+    OfferErc721Item,
     ConsiderationCurrencyItem,
     FulfillOrderDetails,
 )
@@ -38,7 +38,7 @@ def test_multiple_orders_erc721_buy_now(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
         ],
         consideration=[
             ConsiderationCurrencyItem(
@@ -55,7 +55,7 @@ def test_multiple_orders_erc721_buy_now(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id2),
+            OfferErc721Item(token=erc721.address, identifier=nft_id2),
         ],
         consideration=[
             ConsiderationCurrencyItem(
@@ -72,7 +72,7 @@ def test_multiple_orders_erc721_buy_now(
     use_case = consideration.create_order(
         account_address=second_offerer.address,
         offer=[
-            BasicOfferErc721Item(token=second_erc721.address, identifier=nft_id),
+            OfferErc721Item(token=second_erc721.address, identifier=nft_id),
         ],
         consideration=[
             ConsiderationCurrencyItem(

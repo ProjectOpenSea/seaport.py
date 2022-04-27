@@ -4,8 +4,8 @@ from web3.types import RPCEndpoint
 from consideration.consideration import Consideration
 from consideration.constants import ItemType
 from consideration.types import (
-    BasicOfferErc721Item,
-    BasicOfferErc1155Item,
+    OfferErc721Item,
+    OfferErc1155Item,
     ConsiderationCurrencyItem,
 )
 
@@ -27,7 +27,7 @@ def test_erc721_ascending_auction(
         start_time=start_time,
         end_time=end_time,
         account_address=offerer.address,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"),
@@ -89,7 +89,7 @@ def test_erc721_for_erc20_ascending_auction(
         end_time=end_time,
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
         ],
         consideration=[
             ConsiderationCurrencyItem(
@@ -154,7 +154,7 @@ def test_erc721_descending_auction(
         start_time=start_time,
         end_time=end_time,
         account_address=offerer.address,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(20, "ether"),
@@ -216,7 +216,7 @@ def test_erc721_for_erc20_descending_auction(
         end_time=end_time,
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
         ],
         consideration=[
             ConsiderationCurrencyItem(
@@ -284,7 +284,7 @@ def test_erc1155_ascending_auction(
         end_time=end_time,
         account_address=offerer.address,
         offer=[
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 amount=1,
@@ -353,7 +353,7 @@ def test_erc1155_for_erc20_ascending_auction(
         end_time=end_time,
         account_address=offerer.address,
         offer=[
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 amount=1,
@@ -425,7 +425,7 @@ def test_erc1155_descending_auction(
         end_time=end_time,
         account_address=offerer.address,
         offer=[
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 amount=erc1155_amount,
@@ -494,7 +494,7 @@ def test_erc1155_for_erc20_descending_auction(
         end_time=end_time,
         account_address=offerer.address,
         offer=[
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 amount=erc1155_amount,

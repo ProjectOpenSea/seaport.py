@@ -3,10 +3,10 @@ from web3 import Web3
 from consideration.consideration import Consideration
 from consideration.constants import ItemType
 from consideration.types import (
-    BasicConsiderationErc721Item,
-    BasicConsiderationErc1155Item,
-    BasicOfferErc721Item,
-    BasicOfferErc1155Item,
+    ConsiderationErc721Item,
+    ConsiderationErc1155Item,
+    OfferErc721Item,
+    OfferErc1155Item,
     ConsiderationCurrencyItem,
     OfferCurrencyItem,
 )
@@ -26,13 +26,11 @@ def test_swap_erc721_for_erc721(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id2),
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id2),
         ],
         consideration=[
-            BasicConsiderationErc721Item(
-                token=second_erc721.address, identifier=nft_id
-            ),
+            ConsiderationErc721Item(token=second_erc721.address, identifier=nft_id),
         ],
     )
 
@@ -74,15 +72,15 @@ def test_swap_erc1155_for_erc1155(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id2, amount=erc1155_amount
             ),
         ],
         consideration=[
-            BasicConsiderationErc1155Item(
+            ConsiderationErc1155Item(
                 token=second_erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
         ],
@@ -133,20 +131,18 @@ def test_swap_erc721_and_erc20_for_erc721_and_erc20(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(
+            OfferErc721Item(
                 token=erc721.address,
                 identifier=nft_id,
             ),
-            BasicOfferErc721Item(
+            OfferErc721Item(
                 token=erc721.address,
                 identifier=nft_id2,
             ),
             OfferCurrencyItem(token=erc20.address, amount=Web3.toWei("5", "ether")),
         ],
         consideration=[
-            BasicConsiderationErc721Item(
-                token=second_erc721.address, identifier=nft_id
-            ),
+            ConsiderationErc721Item(token=second_erc721.address, identifier=nft_id),
             ConsiderationCurrencyItem(
                 token=erc20.address, amount=Web3.toWei("10", "ether")
             ),

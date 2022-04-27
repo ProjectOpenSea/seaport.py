@@ -3,10 +3,10 @@ from web3 import Web3
 from consideration.consideration import Consideration
 from consideration.constants import ItemType
 from consideration.types import (
-    BasicConsiderationErc721Item,
-    BasicConsiderationErc1155Item,
-    BasicOfferErc721Item,
-    BasicOfferErc1155Item,
+    ConsiderationErc721Item,
+    ConsiderationErc1155Item,
+    OfferErc721Item,
+    OfferErc1155Item,
     ConsiderationCurrencyItem,
     OfferCurrencyItem,
 )
@@ -26,9 +26,9 @@ def test_bundle_erc721_buy_now(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id2),
-            BasicOfferErc721Item(token=second_erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id2),
+            OfferErc721Item(token=second_erc721.address, identifier=nft_id),
         ],
         consideration=[
             ConsiderationCurrencyItem(
@@ -65,9 +65,9 @@ def test_bundle_erc721_buy_now_with_erc20(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id2),
-            BasicOfferErc721Item(token=second_erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=erc721.address, identifier=nft_id2),
+            OfferErc721Item(token=second_erc721.address, identifier=nft_id),
         ],
         consideration=[
             ConsiderationCurrencyItem(
@@ -126,13 +126,13 @@ def test_bundle_erc721_accept_offer(
             ),
         ],
         consideration=[
-            BasicConsiderationErc721Item(
+            ConsiderationErc721Item(
                 token=erc721.address, identifier=nft_id, recipient=offerer.address
             ),
-            BasicConsiderationErc721Item(
+            ConsiderationErc721Item(
                 token=erc721.address, identifier=nft_id2, recipient=offerer.address
             ),
-            BasicConsiderationErc721Item(
+            ConsiderationErc721Item(
                 token=second_erc721.address,
                 identifier=nft_id,
                 recipient=offerer.address,
@@ -216,9 +216,9 @@ def test_bundle_erc721_and_erc1155_buy_now(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
-            BasicOfferErc721Item(token=second_erc721.address, identifier=nft_id),
-            BasicOfferErc1155Item(
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=second_erc721.address, identifier=nft_id),
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
         ],
@@ -264,9 +264,9 @@ def test_bundle_erc721_and_erc1155_buy_now_with_erc20(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
-            BasicOfferErc721Item(token=second_erc721.address, identifier=nft_id),
-            BasicOfferErc1155Item(
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc721Item(token=second_erc721.address, identifier=nft_id),
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
         ],
@@ -334,15 +334,15 @@ def test_bundle_erc721_and_erc1155_accept_offer(
             ),
         ],
         consideration=[
-            BasicConsiderationErc721Item(
+            ConsiderationErc721Item(
                 token=erc721.address, identifier=nft_id, recipient=offerer.address
             ),
-            BasicConsiderationErc721Item(
+            ConsiderationErc721Item(
                 token=second_erc721.address,
                 identifier=nft_id,
                 recipient=offerer.address,
             ),
-            BasicConsiderationErc1155Item(
+            ConsiderationErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 amount=erc1155_amount,
@@ -433,13 +433,13 @@ def test_bundle_erc1155_buy_now(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id2, amount=erc1155_amount
             ),
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=second_erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
         ],
@@ -484,13 +484,13 @@ def test_bundle_erc1155_buy_now_with_erc20(
     use_case = consideration.create_order(
         account_address=offerer.address,
         offer=[
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=erc1155.address, identifier=nft_id2, amount=erc1155_amount
             ),
-            BasicOfferErc1155Item(
+            OfferErc1155Item(
                 token=second_erc1155.address, identifier=nft_id, amount=erc1155_amount
             ),
         ],
@@ -557,19 +557,19 @@ def test_bundle_erc1155_accept_offer(
             ),
         ],
         consideration=[
-            BasicConsiderationErc1155Item(
+            ConsiderationErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 recipient=offerer.address,
                 amount=erc1155_amount,
             ),
-            BasicConsiderationErc1155Item(
+            ConsiderationErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id2,
                 recipient=offerer.address,
                 amount=erc1155_amount,
             ),
-            BasicConsiderationErc1155Item(
+            ConsiderationErc1155Item(
                 token=second_erc1155.address,
                 identifier=nft_id,
                 recipient=offerer.address,

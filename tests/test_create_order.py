@@ -7,9 +7,9 @@ from consideration.consideration import Consideration
 from consideration.constants import MAX_INT, ItemType, OrderType
 from consideration.types import (
     ApprovalAction,
-    BasicConsiderationErc721Item,
-    BasicOfferErc721Item,
-    BasicOfferErc1155Item,
+    ConsiderationErc721Item,
+    OfferErc721Item,
+    OfferErc1155Item,
     ConsiderationConfig,
     ConsiderationCurrencyItem,
     ContractOverrides,
@@ -33,7 +33,7 @@ def test_create_order_success(
         start_time=start_time,
         end_time=end_time,
         salt=salt,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[ConsiderationCurrencyItem(amount=to_wei(10, "ether"))],
         fees=[Fee(recipient=zone.address, basis_points=250)],
     )
@@ -121,7 +121,7 @@ def test_create_order_offer_erc20_for_erc721(
         salt=salt,
         offer=[OfferCurrencyItem(amount=to_wei(10, "ether"), token=erc20.address)],
         consideration=[
-            BasicConsiderationErc721Item(token=erc721.address, identifier=nft_id)
+            ConsiderationErc721Item(token=erc721.address, identifier=nft_id)
         ],
         fees=[Fee(recipient=zone.address, basis_points=250)],
     )
@@ -215,8 +215,8 @@ def test_create_order_offer_erc20_and_erc1155(
         end_time=end_time,
         salt=salt,
         offer=[
-            BasicOfferErc721Item(token=erc721.address, identifier=nft_id),
-            BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1),
+            OfferErc721Item(token=erc721.address, identifier=nft_id),
+            OfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1),
         ],
         consideration=[ConsiderationCurrencyItem(amount=to_wei(10, "ether"))],
         fees=[Fee(recipient=zone.address, basis_points=250)],
@@ -335,7 +335,7 @@ def test_raises_if_currencies_are_different(
             start_time=start_time,
             end_time=end_time,
             salt=salt,
-            offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+            offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
             consideration=[
                 ConsiderationCurrencyItem(amount=to_wei(10, "ether")),
                 ConsiderationCurrencyItem(amount=1, token=erc20.address),
@@ -357,7 +357,7 @@ def test_raises_if_offerer_insufficient_balance(
             start_time=start_time,
             end_time=end_time,
             salt=salt,
-            offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+            offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
             consideration=[
                 ConsiderationCurrencyItem(amount=to_wei(10, "ether")),
             ],
@@ -393,7 +393,7 @@ def test_skip_balance_and_approval_validation_if_config_skips(
         start_time=start_time,
         end_time=end_time,
         salt=salt,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[ConsiderationCurrencyItem(amount=to_wei(10, "ether"))],
         fees=[Fee(recipient=zone.address, basis_points=250)],
     )
