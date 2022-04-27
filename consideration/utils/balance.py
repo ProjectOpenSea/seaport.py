@@ -18,7 +18,7 @@ def balance_of(
             address=Web3.toChecksumAddress(item.token), abi=ERC721_ABI
         )
 
-        if item.itemType == ItemType.ERC721_WITH_CRITERIA.value:
+        if item.itemType == ItemType.ERC721_WITH_CRITERIA:
             if criteria:
                 owner_of: str = contract.functions.ownerOf(criteria.identifier).call()
                 return 1 if owner_of.lower() == owner.lower() else 0
@@ -32,7 +32,7 @@ def balance_of(
             address=Web3.toChecksumAddress(item.token), abi=ERC1155_ABI
         )
 
-        if item.itemType == ItemType.ERC1155_WITH_CRITERIA.value:
+        if item.itemType == ItemType.ERC1155_WITH_CRITERIA:
             if not criteria:
                 # We don't have a good way to determine the balance of an erc1155 criteria item unless explicit
                 # identifiers are provided, so just assume the offerer has sufficient balance

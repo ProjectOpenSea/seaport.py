@@ -346,7 +346,7 @@ def validate_offer_balances_and_approvals(
 #    respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order
 #    except for ERC20 items with an item type that matches the order's offered item type.
 # 5. If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must
-#    be able to supply the sum total of those items as msg.value.
+#    be able to supply the sum total of those items as msg.value
 def validate_basic_fulfill_balances_and_approvals(
     *,
     offer: list[OfferItem],
@@ -405,7 +405,7 @@ def validate_basic_fulfill_balances_and_approvals(
 # 4. If the fulfiller does elect to utilize a proxy, they need to have sufficient approvals set for their
 #    respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
 # 5. If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must
-#    be able to supply the sum total of those items as msg.value.
+#    be able to supply the sum total of those items as msg.value
 def validate_standard_fulfill_balances_and_approvals(
     *,
     offer: list[OfferItem],

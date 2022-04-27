@@ -18,29 +18,29 @@ from consideration.utils.merkletree import MerkleTree
 
 
 def is_currency_item(item_type: ItemType):
-    return item_type in [ItemType.NATIVE.value, ItemType.ERC20.value]
+    return item_type in [ItemType.NATIVE, ItemType.ERC20]
 
 
 def is_native_currency_item(item_type: ItemType):
-    return item_type == ItemType.NATIVE.value
+    return item_type == ItemType.NATIVE
 
 
 def is_erc20_item(item_type: ItemType):
-    return item_type == ItemType.ERC20.value
+    return item_type == ItemType.ERC20
 
 
 def is_erc721_item(item_type: ItemType):
-    return item_type in [ItemType.ERC721.value, ItemType.ERC721_WITH_CRITERIA.value]
+    return item_type in [ItemType.ERC721, ItemType.ERC721_WITH_CRITERIA]
 
 
 def is_erc1155_item(item_type: ItemType):
-    return item_type in [ItemType.ERC1155.value, ItemType.ERC1155_WITH_CRITERIA.value]
+    return item_type in [ItemType.ERC1155, ItemType.ERC1155_WITH_CRITERIA]
 
 
 def is_criteria_item(item_type: ItemType):
     return item_type in [
-        ItemType.ERC721_WITH_CRITERIA.value,
-        ItemType.ERC1155_WITH_CRITERIA.value,
+        ItemType.ERC721_WITH_CRITERIA,
+        ItemType.ERC1155_WITH_CRITERIA,
     ]
 
 

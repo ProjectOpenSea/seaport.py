@@ -95,7 +95,7 @@ class ConsiderationCurrencyItem(OfferCurrencyItem):
     recipient: Optional[str] = None
 
 
-class BasicOfferErc721Item(BaseModel):
+class OfferErc721Item(BaseModel):
     item_type = ItemType.ERC721
     token: str
     identifier: int
@@ -110,10 +110,10 @@ class OfferErc721ItemWithCriteria(BaseModel):
     end_amount: Optional[int] = 1
 
 
-OfferErc721Item = Union[BasicOfferErc721Item, OfferErc721ItemWithCriteria]
+OfferErc721InputItem = Union[OfferErc721Item, OfferErc721ItemWithCriteria]
 
 
-class BasicConsiderationErc721Item(BasicOfferErc721Item):
+class ConsiderationErc721Item(OfferErc721Item):
     recipient: Optional[str] = None
 
 
@@ -121,12 +121,12 @@ class ConsiderationErc721ItemWithCriteria(OfferErc721ItemWithCriteria):
     recipient: Optional[str] = None
 
 
-ConsiderationErc721Item = Union[
-    BasicConsiderationErc721Item, ConsiderationErc721ItemWithCriteria
+ConsiderationErc721InputItem = Union[
+    ConsiderationErc721Item, ConsiderationErc721ItemWithCriteria
 ]
 
 
-class BasicOfferErc1155Item(BaseModel):
+class OfferErc1155Item(BaseModel):
     item_type = ItemType.ERC1155
     token: str
     identifier: int
@@ -142,10 +142,10 @@ class OfferErc1155ItemWithCriteria(BaseModel):
     end_amount: Optional[int] = None
 
 
-OfferErc1155Item = Union[BasicOfferErc1155Item, OfferErc1155ItemWithCriteria]
+OfferErc1155InputItem = Union[OfferErc1155Item, OfferErc1155ItemWithCriteria]
 
 
-class BasicConsiderationErc1155Item(BasicOfferErc1155Item):
+class ConsiderationErc1155Item(OfferErc1155Item):
     recipient: Optional[str] = None
 
 
@@ -153,15 +153,17 @@ class ConsiderationErc1155ItemWithCriteria(OfferErc1155ItemWithCriteria):
     recipient: Optional[str] = None
 
 
-ConsiderationErc1155Item = Union[
-    BasicConsiderationErc1155Item, ConsiderationErc1155ItemWithCriteria
+ConsiderationErc1155InputItem = Union[
+    ConsiderationErc1155Item, ConsiderationErc1155ItemWithCriteria
 ]
 
 
-CreateInputItem = Union[OfferErc721Item, OfferErc1155Item, OfferCurrencyItem]
+CreateInputItem = Union[OfferErc721InputItem, OfferErc1155InputItem, OfferCurrencyItem]
 
 ConsiderationInputItem = Union[
-    ConsiderationErc721Item, ConsiderationErc1155Item, ConsiderationCurrencyItem
+    ConsiderationErc721InputItem,
+    ConsiderationErc1155InputItem,
+    ConsiderationCurrencyItem,
 ]
 
 
@@ -256,6 +258,7 @@ class CreatedOrder(Order):
 
 class CreateOrderAction(BaseModel):
     type = "create"
+    get_message_to_sign: Callable[[], str]
     create_order: Callable[[], CreatedOrder]
 
 

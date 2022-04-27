@@ -1,16 +1,15 @@
 import pytest
 from web3 import Web3
-from web3.constants import ADDRESS_ZERO
 
 from consideration.consideration import Consideration
 from consideration.constants import LEGACY_PROXY_CONDUIT, ItemType
 from consideration.types import (
-    BasicConsiderationErc721Item,
-    BasicConsiderationErc1155Item,
-    BasicOfferErc721Item,
-    BasicOfferErc1155Item,
     ConsiderationCurrencyItem,
+    ConsiderationErc721Item,
+    ConsiderationErc1155Item,
     OfferCurrencyItem,
+    OfferErc721Item,
+    OfferErc1155Item,
 )
 
 nft_id = 1
@@ -20,7 +19,7 @@ def test_erc721_buy_now(consideration: Consideration, erc721, offerer, zone, ful
     erc721.mint(offerer, nft_id)
     use_case = consideration.create_order(
         account_address=offerer.address,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"), recipient=offerer.address
@@ -58,7 +57,7 @@ def test_erc721_buy_now_offer_via_proxy(
     use_case = consideration.create_order(
         conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"), recipient=offerer.address
@@ -97,7 +96,7 @@ def test_erc721_buy_now_already_validated_order(
     erc721.mint(offerer, nft_id)
     use_case = consideration.create_order(
         account_address=offerer.address,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"), recipient=offerer.address
@@ -133,7 +132,7 @@ def test_erc721_buy_now_with_erc20(
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
     use_case = consideration.create_order(
         account_address=offerer.address,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"),
@@ -187,7 +186,7 @@ def test_erc721_buy_now_with_erc20_offer_via_proxy(
     use_case = consideration.create_order(
         conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
-        offer=[BasicOfferErc721Item(token=erc721.address, identifier=nft_id)],
+        offer=[OfferErc721Item(token=erc721.address, identifier=nft_id)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"),
@@ -244,7 +243,7 @@ def test_erc721_accept_offer(
             ),
         ],
         consideration=[
-            BasicConsiderationErc721Item(
+            ConsiderationErc721Item(
                 token=erc721.address, identifier=nft_id, recipient=offerer.address
             ),
             ConsiderationCurrencyItem(
@@ -303,7 +302,7 @@ def test_erc721_accept_offer_fulfilled_via_proxy(
             ),
         ],
         consideration=[
-            BasicConsiderationErc721Item(
+            ConsiderationErc721Item(
                 token=erc721.address, identifier=nft_id, recipient=offerer.address
             ),
             ConsiderationCurrencyItem(
@@ -336,9 +335,7 @@ def test_erc1155_buy_now(
     erc1155.mint(offerer, nft_id, 1)
     use_case = consideration.create_order(
         account_address=offerer.address,
-        offer=[
-            BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)
-        ],
+        offer=[OfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"), recipient=offerer.address
@@ -376,9 +373,7 @@ def test_erc1155_buy_now_offer_via_proxy(
     use_case = consideration.create_order(
         conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
-        offer=[
-            BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)
-        ],
+        offer=[OfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"), recipient=offerer.address
@@ -418,9 +413,7 @@ def test_erc1155_buy_now_already_validated_order(
     erc1155.mint(offerer, nft_id, 1)
     use_case = consideration.create_order(
         account_address=offerer.address,
-        offer=[
-            BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)
-        ],
+        offer=[OfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"), recipient=offerer.address
@@ -456,9 +449,7 @@ def test_erc1155_buy_now_with_erc20(
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
     use_case = consideration.create_order(
         account_address=offerer.address,
-        offer=[
-            BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)
-        ],
+        offer=[OfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"),
@@ -512,9 +503,7 @@ def test_erc1155_buy_now_with_erc20_offer_via_proxy(
     use_case = consideration.create_order(
         conduit=LEGACY_PROXY_CONDUIT,
         account_address=offerer.address,
-        offer=[
-            BasicOfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)
-        ],
+        offer=[OfferErc1155Item(token=erc1155.address, identifier=nft_id, amount=1)],
         consideration=[
             ConsiderationCurrencyItem(
                 amount=Web3.toWei(10, "ether"),
@@ -572,7 +561,7 @@ def test_erc1155_accept_offer(
             ),
         ],
         consideration=[
-            BasicConsiderationErc1155Item(
+            ConsiderationErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 recipient=offerer.address,
@@ -634,7 +623,7 @@ def test_erc1155_accept_offer_fulfilled_via_proxy(
             ),
         ],
         consideration=[
-            BasicConsiderationErc1155Item(
+            ConsiderationErc1155Item(
                 token=erc1155.address,
                 identifier=nft_id,
                 recipient=offerer.address,

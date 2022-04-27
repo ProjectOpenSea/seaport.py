@@ -90,8 +90,7 @@ def should_use_basic_fulfill(
 
     nfts = list(
         filter(
-            lambda item: item.itemType
-            in [ItemType.ERC721.value, ItemType.ERC1155.value],
+            lambda item: item.itemType in [ItemType.ERC721, ItemType.ERC1155],
             all_items,
         )
     )
@@ -155,9 +154,7 @@ def should_use_basic_fulfill(
     # currencies needs to be zero, and the amounts on the 721 item need to be 1
     native_currency_is_zero_address = all(
         item.token == ADDRESS_ZERO
-        for item in filter(
-            lambda item: item.itemType == ItemType.NATIVE.value, currencies
-        )
+        for item in filter(lambda item: item.itemType == ItemType.NATIVE, currencies)
     )
 
     currency_identifiers_are_zero = all(
@@ -166,7 +163,7 @@ def should_use_basic_fulfill(
 
     erc_721s_are_single_amount = all(
         item.endAmount
-        for item in filter(lambda item: item.itemType == ItemType.ERC721.value, nfts)
+        for item in filter(lambda item: item.itemType == ItemType.ERC721, nfts)
     )
 
     return (
@@ -195,22 +192,22 @@ offer_and_consideration_fulfillment_mapping = {
 def get_basic_order_route_type(
     offer_item_type: ItemType, consideration_item_type: ItemType
 ):
-    if offer_item_type == ItemType.ERC20.value:
-        if consideration_item_type == ItemType.ERC721.value:
+    if offer_item_type == ItemType.ERC20:
+        if consideration_item_type == ItemType.ERC721:
             return BasicOrderRouteType.ERC721_TO_ERC20
-        elif consideration_item_type == ItemType.ERC1155.value:
+        elif consideration_item_type == ItemType.ERC1155:
             return BasicOrderRouteType.ERC1155_TO_ERC20
 
-    if offer_item_type == ItemType.ERC721.value:
-        if consideration_item_type == ItemType.NATIVE.value:
+    if offer_item_type == ItemType.ERC721:
+        if consideration_item_type == ItemType.NATIVE:
             return BasicOrderRouteType.ETH_TO_ERC721
-        elif consideration_item_type == ItemType.ERC20.value:
+        elif consideration_item_type == ItemType.ERC20:
             return BasicOrderRouteType.ERC20_TO_ERC721
 
-    if offer_item_type == ItemType.ERC1155.value:
-        if consideration_item_type == ItemType.NATIVE.value:
+    if offer_item_type == ItemType.ERC1155:
+        if consideration_item_type == ItemType.NATIVE:
             return BasicOrderRouteType.ETH_TO_ERC1155
-        elif consideration_item_type == ItemType.ERC20.value:
+        elif consideration_item_type == ItemType.ERC20:
             return BasicOrderRouteType.ERC20_TO_ERC1155
 
 
@@ -284,7 +281,8 @@ def fulfill_basic_order(
         # this represents both the usual order type as well as the "route"
         # of the basic order (a simple derivation function for the basic order
         # type is `basicOrderType = orderType + (4 * basicOrderRoute)`.)
-        "basicOrderType": order.parameters.orderType + 4 * basic_order_route_type.value,  # type: ignore
+        "basicOrderType": order.parameters.orderType.value
+        + (4 * basic_order_route_type.value),
         "offerToken": offer_item.token,
         "offerIdentifier": offer_item.identifierOrCriteria,
         "offerAmount": offer_item.endAmount,
