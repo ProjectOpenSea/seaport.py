@@ -386,10 +386,10 @@ class Consideration:
         """
         return get_transaction_methods(self.contract.functions.incrementNonce)
 
-    def approve_orders(self, orders: list[Order]) -> TransactionMethods:
+    def validate(self, orders: list[Order]) -> TransactionMethods:
         """
         Approves a list of orders on-chain. This allows accounts to fulfill the order without requiring
-        a signature
+        a signature. Can also be called statically to determine if an order is valid.
 
         Args:
             orders (list[Order]): list of order models
@@ -661,7 +661,7 @@ class Consideration:
         fulfill_order_details: list[FulfillOrderDetails],
         account_address: Optional[str],
         conduit: str = NO_CONDUIT,
-    ):
+    ) -> FulfillOrderUseCase:
         fulfiller = account_address or self.web3.eth.accounts[0]
 
         unique_offerers = list(

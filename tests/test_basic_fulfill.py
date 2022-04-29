@@ -120,7 +120,7 @@ def test_erc721_buy_now_already_validated_order(
     with pytest.raises(Exception):
         fulfill_action.transaction_methods.transact()
 
-    consideration.approve_orders([order]).transact()
+    consideration.validate([order]).transact()
     fulfill_action.transaction_methods.transact()
     assert erc721.ownerOf(nft_id) == fulfiller
 
@@ -437,7 +437,7 @@ def test_erc1155_buy_now_already_validated_order(
     with pytest.raises(Exception):
         fulfill_action.transaction_methods.transact()
 
-    consideration.approve_orders([order]).transact()
+    consideration.validate([order]).transact()
     fulfill_action.transaction_methods.transact()
     assert erc1155.balanceOf(fulfiller, nft_id) == 1
 

@@ -133,6 +133,9 @@ def should_use_basic_fulfill(
         first_consideration.recipient.lower() != order_parameters.offerer.lower()
     )
 
+    if first_consideration_recipient_is_not_offerer:
+        return False
+
     # 8. If the order has multiple consideration items and all consideration items other than the
     # first consideration item have the same item type as the offered item, the offered item
     # amount is not less than the sum of all consideration item amounts excluding the

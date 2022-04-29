@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 from pydantic import BaseModel
 from pydantic.utils import deep_update
@@ -35,6 +35,16 @@ def with_enum_values(element):
 
 def parse_model_list(models: Sequence[BaseModel]):
     return list(map(lambda x: x.dict(), models))
+
+
+def with_int_to_str(element: Any):
+    if isinstance(element, dict):
+        return {k: with_int_to_str(v) for k, v in element.items()}
+    elif isinstance(element, list):
+        return [with_int_to_str(el) for el in element]
+    elif isinstance(element, int):
+        return str(element)
+    return element
 
 
 def dict_int_to_str(d: dict):
