@@ -3,9 +3,7 @@
 [Seaport](https://github.com/ProjectOpenSea/seaport) is a new marketplace protocol for safely and efficiently buying and selling NFTs. This is a JavaScript library intended to make interfacing with the contract reasonable and easy.
 
 - [Synopsis](#synopsis)
-- [Installation](#installation)
-- [Getting Started](#getting-started)
-  - [Use Cases](#use-cases)
+- [How to use](#how-to-use)
 - [Contributing](#contributing)
 
 ## Synopsis
