@@ -5,9 +5,9 @@ description = ""
 authors = ["OpenSea Developers"]
 
 [tool.poetry.dependencies]
-python = "3.9.12"
-web3 = "5.27.0"
-pydantic = "1.9.0"
+python = "^3.9.12"
+web3 = "^5.27.0"
+pydantic = "^1.9.0"
 
 [tool.poetry.dev-dependencies]
 pyright = "1.1.235"
