@@ -1,51 +1,23 @@
-# seaport.py
+# Seaport.py
 
-A library to help interfacing with the Seaport smart contract.
+[Seaport](https://github.com/ProjectOpenSea/seaport) is a new marketplace protocol for safely and efficiently buying and selling NFTs. This is a JavaScript library intended to make interfacing with the contract reasonable and easy.
 
-## Installation
+- [Synopsis](#synopsis)
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+  - [Use Cases](#use-cases)
+- [Contributing](#contributing)
 
-1. Install [pyenv](https://github.com/pyenv/pyenv)
+## Synopsis
 
-2. Setup Pyenv
+This is a Python library to help interface with Seaport. It includes various helper methods and constants that makes interfacing with Seaport easier. These include creating orders, fulfilling orders, doing the necessary balance and approval checks, and more. We recommend taking a look at the [Seaport](https://github.com/ProjectOpenSea/seaport) docs to get a better understanding of how the Seaport marketplace works.
 
-```
-pyenv install 3.9.12
-pyenv virtualenv 3.9.12 seaport
-pyenv activate seaport
-```
+## How to use
 
-3. Install Poetry
+As of now, this is mostly a template library to help users understand how to use Seaport. Look at the various methods in `seaport.py` to understand how to create orders, fulfill them, and more. The test files also serve as a good example of a variety of different use cases Seaport can handle.
 
-```
-pip install poetry==1.1.13
-```
+We will look into publishing this as a Python package when needs arise.
 
-4. Run `poetry install`
+## Contributing
 
-5. (Optional) If running VSCode, set the interpreter to be `.venv/bin/python`
-
-## Testing
-
-### Prerequisites
-
-1. Install yarn `npm i -g yarn`
-
-Using a node package manager such as `nvm` is highly recommended!
-
-2. Run `yarn`
-
-This is needed to run Hardhat as our RPC provider.
-
-### Running tests
-
-To run the tests:
-
-```
-poetry run brownie test --network hardhat
-```
-
-Running a single test:
-
-```
-poetry run brownie test --network hardhat -k test_basic_fulfill
-```
+See [the contributing guide](CONTRIBUTING.md) for detailed instructions on how to get started with this project.

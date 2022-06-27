@@ -3,11 +3,10 @@ from eth_utils.currency import to_wei
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 
+from seaport.constants import MAX_INT, NO_CONDUIT_KEY, ItemType, OrderType
 from seaport.seaport import Seaport
-from seaport.constants import MAX_INT, ItemType, OrderType
 from seaport.types import (
     ApprovalAction,
-    SeaportConfig,
     ConsiderationCurrencyItem,
     ConsiderationErc721Item,
     ContractOverrides,
@@ -16,6 +15,7 @@ from seaport.types import (
     OfferCurrencyItem,
     OfferErc721Item,
     OfferErc1155Item,
+    SeaportConfig,
 )
 from seaport.utils.order import generate_random_salt
 
@@ -66,7 +66,7 @@ def test_create_order_success(seaport: Seaport, erc721, offerer, zone, fulfiller
                     "endAmount": to_wei(9.75, "ether"),
                     "identifierOrCriteria": 0,
                     "itemType": ItemType.NATIVE.value,
-                    "recipient": offerer,
+                    "recipient": offerer.address,
                     "startAmount": to_wei(9.75, "ether"),
                     "token": ADDRESS_ZERO,
                 },
@@ -74,7 +74,7 @@ def test_create_order_success(seaport: Seaport, erc721, offerer, zone, fulfiller
                     "endAmount": to_wei(0.25, "ether"),
                     "identifierOrCriteria": 0,
                     "itemType": ItemType.NATIVE.value,
-                    "recipient": zone,
+                    "recipient": zone.address,
                     "startAmount": to_wei(0.25, "ether"),
                     "token": ADDRESS_ZERO,
                 },
@@ -96,10 +96,10 @@ def test_create_order_success(seaport: Seaport, erc721, offerer, zone, fulfiller
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
             "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "conduit": ADDRESS_ZERO,
+            "conduitKey": NO_CONDUIT_KEY,
+            "counter": 0,
         },
         "signature": order.signature,
-        "counter": 0,
     }
 
     is_valid = seaport.contract.functions.validate([order_dict]).call(
@@ -155,13 +155,13 @@ def test_create_order_offer_erc20_for_erc721(
                     "itemType": ItemType.ERC721.value,
                     "startAmount": 1,
                     "token": erc721.address,
-                    "recipient": offerer,
+                    "recipient": offerer.address,
                 },
                 {
                     "endAmount": to_wei(0.25, "ether"),
                     "identifierOrCriteria": 0,
                     "itemType": ItemType.ERC20.value,
-                    "recipient": zone,
+                    "recipient": zone.address,
                     "startAmount": to_wei(0.25, "ether"),
                     "token": erc20.address,
                 },
@@ -184,10 +184,10 @@ def test_create_order_offer_erc20_for_erc721(
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
             "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "conduit": ADDRESS_ZERO,
+            "conduitKey": NO_CONDUIT_KEY,
+            "counter": 0,
         },
         "signature": order.signature,
-        "counter": 0,
     }
 
     is_valid = seaport.contract.functions.validate([order_dict]).call(
@@ -266,7 +266,7 @@ def test_create_order_offer_erc20_and_erc1155(
                     "endAmount": to_wei(9.75, "ether"),
                     "identifierOrCriteria": 0,
                     "itemType": ItemType.NATIVE.value,
-                    "recipient": offerer,
+                    "recipient": offerer.address,
                     "startAmount": to_wei(9.75, "ether"),
                     "token": ADDRESS_ZERO,
                 },
@@ -274,7 +274,7 @@ def test_create_order_offer_erc20_and_erc1155(
                     "endAmount": to_wei(0.25, "ether"),
                     "identifierOrCriteria": 0,
                     "itemType": ItemType.NATIVE.value,
-                    "recipient": zone,
+                    "recipient": zone.address,
                     "startAmount": to_wei(0.25, "ether"),
                     "token": ADDRESS_ZERO,
                 },
@@ -303,10 +303,10 @@ def test_create_order_offer_erc20_and_erc1155(
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
             "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "conduit": ADDRESS_ZERO,
+            "conduitKey": NO_CONDUIT_KEY,
+            "counter": 0,
         },
         "signature": order.signature,
-        "counter": 0,
     }
 
     is_valid = seaport.contract.functions.validate([order_dict]).call(
@@ -366,20 +366,16 @@ def test_raises_if_offerer_insufficient_balance(
 
 def test_skip_balance_and_approval_validation_if_config_skips(
     seaport_contract,
-    legacy_proxy_registry,
-    legacy_token_transfer_proxy,
     erc721,
     offerer,
     zone,
     fulfiller,
 ):
-    consideration = Seaport(
+    seaport = Seaport(
         provider=Web3.HTTPProvider("http://127.0.0.1:8545"),
         config=SeaportConfig(
             overrides=ContractOverrides(
                 contract_address=seaport_contract.address,
-                legacy_proxy_registry_address=legacy_proxy_registry.address,
-                legacy_token_transfer_proxy_address=legacy_token_transfer_proxy.address,
             ),
             balance_and_approval_checks_on_order_creation=False,
         ),
@@ -411,7 +407,7 @@ def test_skip_balance_and_approval_validation_if_config_skips(
                     "endAmount": to_wei(9.75, "ether"),
                     "identifierOrCriteria": 0,
                     "itemType": ItemType.NATIVE.value,
-                    "recipient": offerer,
+                    "recipient": offerer.address,
                     "startAmount": to_wei(9.75, "ether"),
                     "token": ADDRESS_ZERO,
                 },
@@ -419,7 +415,7 @@ def test_skip_balance_and_approval_validation_if_config_skips(
                     "endAmount": to_wei(0.25, "ether"),
                     "identifierOrCriteria": 0,
                     "itemType": ItemType.NATIVE.value,
-                    "recipient": zone,
+                    "recipient": zone.address,
                     "startAmount": to_wei(0.25, "ether"),
                     "token": ADDRESS_ZERO,
                 },
@@ -441,10 +437,10 @@ def test_skip_balance_and_approval_validation_if_config_skips(
             "totalOriginalConsiderationItems": 2,
             "zone": ADDRESS_ZERO,
             "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "conduit": ADDRESS_ZERO,
+            "conduitKey": NO_CONDUIT_KEY,
+            "counter": 0,
         },
         "signature": order.signature,
-        "counter": 0,
     }
 
     is_valid = seaport.contract.functions.validate([order_dict]).call(

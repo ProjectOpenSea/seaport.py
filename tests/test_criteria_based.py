@@ -1,8 +1,8 @@
 import pytest
 from web3 import Web3
 
-from seaport.seaport import Seaport
 from seaport.constants import ItemType
+from seaport.seaport import Seaport
 from seaport.types import (
     ConsiderationCurrencyItem,
     ConsiderationErc721ItemWithCriteria,
@@ -12,6 +12,7 @@ from seaport.types import (
     OfferErc721ItemWithCriteria,
     OfferErc1155ItemWithCriteria,
 )
+from seaport.utils.merkletree import MerkleTree
 
 nft_id = 1
 nft_id2 = 2
@@ -48,7 +49,7 @@ def test_erc721_collection_based_listing(
     fulfill_order_use_case = seaport.fulfill_order(
         order=order,
         account_address=fulfiller.address,
-        offer_criteria=[InputCriteria(identifier=nft_id, valid_identifiers=[])],
+        offer_criteria=[InputCriteria(identifier=nft_id, proof=[])],
     )
 
     actions = fulfill_order_use_case.actions
@@ -90,7 +91,7 @@ def test_erc721_collection_based_offer(
     fulfill_order_use_case = seaport.fulfill_order(
         order=order,
         account_address=fulfiller.address,
-        consideration_criteria=[InputCriteria(identifier=nft_id, valid_identifiers=[])],
+        consideration_criteria=[InputCriteria(identifier=nft_id, proof=[])],
     )
 
     actions = fulfill_order_use_case.actions
@@ -148,7 +149,11 @@ def test_erc721_trait_based_listing(seaport: Seaport, erc721, offerer, zone, ful
     reverted_use_case = seaport.fulfill_order(
         order=order,
         account_address=fulfiller.address,
-        offer_criteria=[InputCriteria(identifier=nft_id2, valid_identifiers=[nft_id2])],
+        offer_criteria=[
+            InputCriteria(
+                identifier=nft_id2, proof=MerkleTree([nft_id2]).get_proof(nft_id2)
+            )
+        ],
     )
 
     reverted_fulfill_action = reverted_use_case.actions[0]
@@ -159,7 +164,10 @@ def test_erc721_trait_based_listing(seaport: Seaport, erc721, offerer, zone, ful
         order=order,
         account_address=fulfiller.address,
         offer_criteria=[
-            InputCriteria(identifier=nft_id3, valid_identifiers=[nft_id, nft_id3])
+            InputCriteria(
+                identifier=nft_id3,
+                proof=MerkleTree([nft_id, nft_id3]).get_proof(nft_id3),
+            )
         ],
     )
 
@@ -200,7 +208,9 @@ def test_erc721_trait_based_offer(
         order=order,
         account_address=fulfiller.address,
         consideration_criteria=[
-            InputCriteria(identifier=nft_id2, valid_identifiers=[nft_id2])
+            InputCriteria(
+                identifier=nft_id2, proof=MerkleTree([nft_id2]).get_proof(nft_id2)
+            )
         ],
     )
 
@@ -239,7 +249,9 @@ def test_erc721_trait_based_offer(
         order=order,
         account_address=fulfiller.address,
         consideration_criteria=[
-            InputCriteria(identifier=nft_id, valid_identifiers=[nft_id, nft_id3])
+            InputCriteria(
+                identifier=nft_id, proof=MerkleTree([nft_id, nft_id3]).get_proof(nft_id)
+            )
         ],
     )
 
@@ -277,7 +289,7 @@ def test_erc1155_collection_based_listing(
     fulfill_order_use_case = seaport.fulfill_order(
         order=order,
         account_address=fulfiller.address,
-        offer_criteria=[InputCriteria(identifier=nft_id, valid_identifiers=[])],
+        offer_criteria=[InputCriteria(identifier=nft_id, proof=[])],
     )
 
     actions = fulfill_order_use_case.actions
@@ -318,7 +330,7 @@ def test_erc1155_collection_based_offer(
     fulfill_order_use_case = seaport.fulfill_order(
         order=order,
         account_address=fulfiller.address,
-        consideration_criteria=[InputCriteria(identifier=nft_id, valid_identifiers=[])],
+        consideration_criteria=[InputCriteria(identifier=nft_id, proof=[])],
     )
 
     actions = fulfill_order_use_case.actions
@@ -379,7 +391,11 @@ def test_erc1155_trait_based_listing(
     reverted_use_case = seaport.fulfill_order(
         order=order,
         account_address=fulfiller.address,
-        offer_criteria=[InputCriteria(identifier=nft_id2, valid_identifiers=[nft_id2])],
+        offer_criteria=[
+            InputCriteria(
+                identifier=nft_id2, proof=MerkleTree([nft_id2]).get_proof(nft_id2)
+            )
+        ],
     )
 
     reverted_fulfill_action = reverted_use_case.actions[0]
@@ -390,7 +406,10 @@ def test_erc1155_trait_based_listing(
         order=order,
         account_address=fulfiller.address,
         offer_criteria=[
-            InputCriteria(identifier=nft_id3, valid_identifiers=[nft_id, nft_id3])
+            InputCriteria(
+                identifier=nft_id3,
+                proof=MerkleTree([nft_id, nft_id3]).get_proof(nft_id3),
+            )
         ],
     )
 
@@ -432,7 +451,9 @@ def test_erc1155_trait_based_offer(
         order=order,
         account_address=fulfiller.address,
         consideration_criteria=[
-            InputCriteria(identifier=nft_id2, valid_identifiers=[nft_id2])
+            InputCriteria(
+                identifier=nft_id2, proof=MerkleTree([nft_id2]).get_proof(nft_id2)
+            )
         ],
     )
 
@@ -471,7 +492,9 @@ def test_erc1155_trait_based_offer(
         order=order,
         account_address=fulfiller.address,
         consideration_criteria=[
-            InputCriteria(identifier=nft_id, valid_identifiers=[nft_id, nft_id3])
+            InputCriteria(
+                identifier=nft_id, proof=MerkleTree([nft_id, nft_id3]).get_proof(nft_id)
+            )
         ],
     )
 
@@ -514,10 +537,8 @@ def test_erc721_for_erc1155_collection_based_swap(
     fulfill_use_case = seaport.fulfill_order(
         order=order,
         account_address=fulfiller.address,
-        offer_criteria=[InputCriteria(identifier=nft_id, valid_identifiers=[])],
-        consideration_criteria=[
-            InputCriteria(identifier=nft_id2, valid_identifiers=[])
-        ],
+        offer_criteria=[InputCriteria(identifier=nft_id, proof=[])],
+        consideration_criteria=[InputCriteria(identifier=nft_id2, proof=[])],
     )
 
     approval_action, fulfill_action = fulfill_use_case.actions
@@ -572,10 +593,14 @@ def test_erc721_for_erc1155_trait_based_swap(
         order=order,
         account_address=fulfiller.address,
         offer_criteria=[
-            InputCriteria(identifier=nft_id, valid_identifiers=[nft_id, nft_id3])
+            InputCriteria(
+                identifier=nft_id, proof=MerkleTree([nft_id, nft_id3]).get_proof(nft_id)
+            )
         ],
         consideration_criteria=[
-            InputCriteria(identifier=nft_id2, valid_identifiers=[nft_id2])
+            InputCriteria(
+                identifier=nft_id2, proof=MerkleTree([nft_id2]).get_proof(nft_id2)
+            )
         ],
     )
 
@@ -599,10 +624,15 @@ def test_erc721_for_erc1155_trait_based_swap(
         order=order,
         account_address=fulfiller.address,
         offer_criteria=[
-            InputCriteria(identifier=nft_id, valid_identifiers=[nft_id, nft_id3])
+            InputCriteria(
+                identifier=nft_id, proof=MerkleTree([nft_id, nft_id3]).get_proof(nft_id)
+            )
         ],
         consideration_criteria=[
-            InputCriteria(identifier=nft_id2, valid_identifiers=[nft_id2, nft_id3])
+            InputCriteria(
+                identifier=nft_id2,
+                proof=MerkleTree([nft_id2, nft_id3]).get_proof(nft_id2),
+            )
         ],
     )
 

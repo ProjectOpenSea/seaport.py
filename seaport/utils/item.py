@@ -14,7 +14,6 @@ from seaport.types import (
     Order,
 )
 from seaport.utils.gcd import find_gcd
-from seaport.utils.merkletree import MerkleTree
 
 
 def is_currency_item(item_type: ItemType):
@@ -192,16 +191,13 @@ def generate_criteria_resolvers(
         for i, (order_index, item, index, side) in enumerate(criteria_items):
             merkle_root = item.identifierOrCriteria or 0
             input_criteria = criterias[order_index][i]
-            tree = MerkleTree(input_criteria.valid_identifiers or [])
-            criteria_proof = tree.get_proof(input_criteria.identifier)
-
             criteria_resolvers.append(
                 CriteriaResolver(
                     orderIndex=order_index,
                     side=side,
                     index=index,
                     identifier=input_criteria.identifier,
-                    criteriaProof=[] if merkle_root == 0 else criteria_proof,
+                    criteriaProof=[] if merkle_root == 0 else input_criteria.proof,
                 )
             )
 

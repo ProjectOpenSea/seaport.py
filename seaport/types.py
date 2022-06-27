@@ -177,7 +177,7 @@ class Fee(BaseModel):
 
 class InputCriteria(BaseModel):
     identifier: int
-    valid_identifiers: list[int]
+    proof: list[str]
 
 
 class OrderStatus(BaseModel):

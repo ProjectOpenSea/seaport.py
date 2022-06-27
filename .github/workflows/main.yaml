@@ -31,7 +31,7 @@ jobs:
         run: yarn install --immutable --ignore-scripts
 
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.9.12
 
