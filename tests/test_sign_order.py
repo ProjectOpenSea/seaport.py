@@ -2,15 +2,15 @@ from brownie.network.account import Accounts
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 
-from consideration.consideration import Consideration
-from consideration.constants import MAX_INT, ItemType, OrderType
-from consideration.types import ConsiderationItem, OfferItem, OrderParameters
-from consideration.utils.hex_utils import bytes_to_hex
-from consideration.utils.order import generate_random_salt
+from seaport.constants import MAX_INT, NO_CONDUIT_KEY, ItemType, OrderType
+from seaport.seaport import Seaport
+from seaport.types import ConsiderationItem, OfferItem, OrderParameters
+from seaport.utils.hex_utils import bytes_to_hex
+from seaport.utils.order import generate_random_salt
 
 
 def test_valid_order(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     accounts: Accounts,
 ):
@@ -49,7 +49,7 @@ def test_valid_order(
         ),
     ]
 
-    nonce = consideration.get_nonce(offerer.address)
+    counter = seaport.get_counter(offerer.address)
 
     order_parameters = OrderParameters(
         offerer=offerer.address,
@@ -61,12 +61,14 @@ def test_valid_order(
         salt=salt,
         startTime=start_time,
         endTime=end_time,
-        zoneHash=bytes_to_hex(nonce.to_bytes(32, "little")),
-        conduit=ADDRESS_ZERO,
+        zoneHash=bytes_to_hex(counter.to_bytes(32, "little")),
+        conduitKey=NO_CONDUIT_KEY,
     )
 
-    signature = consideration.sign_order(
-        order_parameters=order_parameters, nonce=nonce, account_address=offerer.address
+    signature = seaport.sign_order(
+        order_parameters=order_parameters,
+        counter=counter,
+        account_address=offerer.address,
     )
 
     order = {
@@ -77,7 +79,7 @@ def test_valid_order(
     }
 
     # Use a random address to verify that the signature is valid
-    is_valid = consideration.contract.functions.validate([order]).call(
+    is_valid = seaport.contract.functions.validate([order]).call(
         {"from": random_signer.address}
     )
 

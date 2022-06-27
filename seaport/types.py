@@ -7,34 +7,29 @@ from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 from web3.types import TxParams
 
-from consideration.constants import ItemType, Network, OrderType, Side
-from consideration.utils.pydantic import BaseModelWithEnumValues
+from seaport.constants import NO_CONDUIT_KEY, ItemType, OrderType, Side
+from seaport.utils.pydantic import BaseModelWithEnumValues
 
 
 class ContractOverrides(BaseModel):
     contract_address: Optional[ChecksumAddress] = Web3.toChecksumAddress(ADDRESS_ZERO)
-    legacy_proxy_registry_address: Optional[ChecksumAddress] = Web3.toChecksumAddress(
-        ADDRESS_ZERO
-    )
-    legacy_token_transfer_proxy_address: Optional[
-        ChecksumAddress
-    ] = Web3.toChecksumAddress(ADDRESS_ZERO)
+    default_conduit_key: Optional[str] = NO_CONDUIT_KEY
 
 
-class ConsiderationConfig(BaseModel):
+class SeaportConfig(BaseModel):
     # Used because fulfillments may be invalid if confirmations take too long. Default buffer is 30 minutes
     ascending_amount_fulfillment_buffer: int = 1800
 
     # Allow users to optionally skip balance and approval checks
     balance_and_approval_checks_on_order_creation: bool = True
 
+    # A mapping of conduit key to conduit
+    conduit_key_to_conduit: dict[str, str] = {}
+
     overrides: ContractOverrides = ContractOverrides(
         contract_address=Web3.toChecksumAddress(ADDRESS_ZERO),
-        legacy_proxy_registry_address=Web3.toChecksumAddress(ADDRESS_ZERO),
-        legacy_token_transfer_proxy_address=Web3.toChecksumAddress(ADDRESS_ZERO),
+        default_conduit_key=NO_CONDUIT_KEY,
     )
-
-    network: Network = Network.MAINNET
 
 
 class OfferItem(BaseModelWithEnumValues):
@@ -67,17 +62,25 @@ class OrderParameters(BaseModelWithEnumValues):
     offer: list[OfferItem]
     consideration: list[ConsiderationItem]
     zoneHash: str
-    conduit: str
     totalOriginalConsiderationItems: int
+    conduitKey: str
 
 
 class OrderComponents(OrderParameters):
-    nonce: int
+    counter: int
 
 
 class Order(BaseModel):
     parameters: OrderParameters
     signature: str
+
+
+class OrderWithCounter(Order):
+    parameters: OrderComponents
+    signature: str
+
+
+FulfillableOrder = Union[Order, OrderWithCounter]
 
 
 class AdvancedOrder(Order):
@@ -174,7 +177,7 @@ class Fee(BaseModel):
 
 class InputCriteria(BaseModel):
     identifier: int
-    valid_identifiers: list[int]
+    proof: list[str]
 
 
 class OrderStatus(BaseModel):
@@ -252,14 +255,10 @@ class TransactionMethods(BaseModel):
         arbitrary_types_allowed = True
 
 
-class CreatedOrder(Order):
-    nonce: int
-
-
 class CreateOrderAction(BaseModel):
     type = "create"
     get_message_to_sign: Callable[[], str]
-    create_order: Callable[[], CreatedOrder]
+    create_order: Callable[[], OrderWithCounter]
 
 
 class ApprovalAction(BaseModelWithEnumValues):
@@ -282,7 +281,7 @@ OrderExchangeActions = list[Union[ApprovalAction, ExchangeAction]]
 
 class CreateOrderUseCase(BaseModel):
     actions: CreateOrderActions
-    execute_all_actions: Callable[[], CreatedOrder]
+    execute_all_actions: Callable[[], OrderWithCounter]
 
 
 class FulfillOrderUseCase(BaseModel):
@@ -299,7 +298,7 @@ class CriteriaResolver(BaseModelWithEnumValues):
 
 
 class FulfillOrderDetails(BaseModel):
-    order: Order
+    order: OrderWithCounter
     units_to_fill: int = 0
     offer_criteria: list[InputCriteria] = []
     consideration_criteria: list[InputCriteria] = []
@@ -310,8 +309,3 @@ class FulfillOrderDetails(BaseModel):
 class FulfillmentComponent(BaseModel):
     orderIndex: int
     itemIndex: int
-
-
-class ApprovalOperators(BaseModel):
-    operator: str
-    erc20_operator: str

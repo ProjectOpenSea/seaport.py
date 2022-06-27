@@ -3,7 +3,7 @@ from typing import Optional, Union
 from web3.contract import ContractFunction
 from web3.types import TxParams
 
-from consideration.types import (
+from seaport.types import (
     ApprovalAction,
     CreateOrderAction,
     CreateOrderActions,

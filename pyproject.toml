@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "consideration.py"
-version = "0.1.0"
+name = "seaport.py"
+version = "1.0.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["OpenSea Developers"]
 
 [tool.poetry.dependencies]
-python = "3.9.12"
-web3 = "5.27.0"
-pydantic = "1.9.0"
+python = "^3.9.12"
+web3 = "^5.27.0"
+pydantic = "^1.9.0"
 
 [tool.poetry.dev-dependencies]
 pyright = "1.1.235"

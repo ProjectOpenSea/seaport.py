@@ -6,8 +6,8 @@ import pytest
 from brownie.network.account import Accounts, _PrivateKeyAccount
 from web3 import Web3
 
-from consideration.consideration import Consideration
-from consideration.types import ConsiderationConfig, ContractOverrides
+from seaport.seaport import Seaport
+from seaport.types import ContractOverrides, SeaportConfig
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -18,58 +18,30 @@ def isolate(fn_isolation):
 
 
 @pytest.fixture(scope="module")
-def legacy_proxy_registry(WyvernProxyRegistry, accounts: Accounts):
-    legacy_proxy_registry_contract = WyvernProxyRegistry.deploy({"from": accounts[0]})
-
-    return legacy_proxy_registry_contract
-
-
-@pytest.fixture(scope="module")
-def legacy_token_transfer_proxy(
-    WyvernTokenTransferProxy, legacy_proxy_registry, accounts: Accounts
-):
-    legacy_token_transfer_proxy_contract = WyvernTokenTransferProxy.deploy(
-        legacy_proxy_registry.address, {"from": accounts[0]}
-    )
-
-    return legacy_token_transfer_proxy_contract
-
-
-@pytest.fixture(scope="module")
-def consideration_contract(
-    TestConsideration,
-    legacy_proxy_registry,
-    legacy_token_transfer_proxy,
+def seaport_contract(
+    TestSeaport,
+    TestConduitController,
     accounts: Accounts,
 ):
-    legacy_proxy_implementation = legacy_proxy_registry.delegateProxyImplementation()
+    conduit_controller = TestConduitController.deploy({"from": accounts[0]})
 
-    consideration = TestConsideration.deploy(
-        legacy_proxy_registry.address,
-        legacy_token_transfer_proxy.address,
-        legacy_proxy_implementation,
+    consideration = TestSeaport.deploy(
+        conduit_controller.address,
         {"from": accounts[0]},
     )
-
-    legacy_proxy_registry.grantInitialAuthentication(consideration.address)
 
     return consideration
 
 
 @pytest.fixture(scope="module")
-def consideration(
-    consideration_contract,
-    legacy_proxy_registry,
-    legacy_token_transfer_proxy,
-    accounts: Accounts,
+def seaport(
+    seaport_contract,
 ):
-    return Consideration(
+    return Seaport(
         provider=Web3.HTTPProvider("http://127.0.0.1:8545"),
-        config=ConsiderationConfig(
+        config=SeaportConfig(
             overrides=ContractOverrides(
-                contract_address=consideration_contract.address,
-                legacy_proxy_registry_address=legacy_proxy_registry.address,
-                legacy_token_transfer_proxy_address=legacy_token_transfer_proxy.address,
+                contract_address=seaport_contract.address,
             )
         ),
     )

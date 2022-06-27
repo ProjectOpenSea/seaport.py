@@ -1,9 +1,9 @@
 from enum import Enum, auto
 
-from web3.constants import ADDRESS_ZERO
+from web3.constants import HASH_ZERO
 
-CONSIDERATION_CONTRACT_NAME = "Consideration"
-CONSIDERATION_CONTRACT_VERSION = "rc.1"
+CONSIDERATION_CONTRACT_NAME = "Seaport"
+CONSIDERATION_CONTRACT_VERSION = "1.1"
 EIP_712_ORDER_TYPE = {
     "EIP712Domain": [
         {"name": "name", "type": "string"},
@@ -21,8 +21,8 @@ EIP_712_ORDER_TYPE = {
         {"name": "endTime", "type": "uint256"},
         {"name": "zoneHash", "type": "bytes32"},
         {"name": "salt", "type": "uint256"},
-        {"name": "conduit", "type": "address"},
-        {"name": "nonce", "type": "uint256"},
+        {"name": "conduitKey", "type": "bytes32"},
+        {"name": "counter", "type": "uint256"},
     ],
     "OfferItem": [
         {"name": "itemType", "type": "uint8"},
@@ -80,22 +80,5 @@ class ProxyStrategy(Enum):
 
 MAX_INT = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 ONE_HUNDRED_PERCENT_BP = 10000
-NO_CONDUIT = ADDRESS_ZERO
-LEGACY_PROXY_CONDUIT = ADDRESS_ZERO[:-1] + "1"
-
-
-class Network(Enum):
-    MAINNET = 1
-    RINKEBY = 4
-
-
-LEGACY_PROXY_ADDRESSES = {
-    Network.MAINNET: {
-        "WyvernProxyRegistry": "0xa5409ec958C83C3f309868babACA7c86DCB077c1",
-        "WyvernTokenTransferProxy": "0xE5c783EE536cf5E63E792988335c4255169be4E1",
-    },
-    Network.RINKEBY: {
-        "WyvernProxyRegistry": "0x1E525EEAF261cA41b809884CBDE9DD9E1619573A",
-        "WyvernTokenTransferProxy": "0xCdC9188485316BF6FA416d02B4F680227c50b89e",
-    },
-}
+NO_CONDUIT_KEY = HASH_ZERO
+CROSS_CHAIN_SEAPORT_ADDRESS = "0x00000000006c3852cbef3e08e8df289169ede581"

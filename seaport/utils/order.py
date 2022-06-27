@@ -4,22 +4,22 @@ from typing import Sequence
 
 from web3.constants import ADDRESS_ZERO
 
-from consideration.constants import ONE_HUNDRED_PERCENT_BP, ItemType
-from consideration.types import (
-    OfferErc721Item,
-    OfferErc1155Item,
+from seaport.constants import ONE_HUNDRED_PERCENT_BP, ItemType
+from seaport.types import (
     ConsiderationItem,
     CreateInputItem,
     Fee,
     Item,
     OfferCurrencyItem,
+    OfferErc721Item,
     OfferErc721ItemWithCriteria,
+    OfferErc1155Item,
     OfferErc1155ItemWithCriteria,
     OfferItem,
     Order,
 )
-from consideration.utils.item import get_maximum_size_for_order, is_currency_item
-from consideration.utils.merkletree import MerkleTree
+from seaport.utils.item import get_maximum_size_for_order, is_currency_item
+from seaport.utils.merkletree import MerkleTree
 
 
 def multiply_basis_points(amount: int, basis_points: int) -> int:

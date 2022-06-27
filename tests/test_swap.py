@@ -1,8 +1,8 @@
 from web3 import Web3
 
-from consideration.consideration import Consideration
-from consideration.constants import ItemType
-from consideration.types import (
+from seaport.constants import ItemType
+from seaport.seaport import Seaport
+from seaport.types import (
     ConsiderationCurrencyItem,
     ConsiderationErc721Item,
     ConsiderationErc1155Item,
@@ -17,13 +17,13 @@ erc1155_amount = 3
 
 
 def test_swap_erc721_for_erc721(
-    consideration: Consideration, erc721, second_erc721, offerer, zone, fulfiller
+    seaport: Seaport, erc721, second_erc721, offerer, zone, fulfiller
 ):
     erc721.mint(offerer, nft_id)
     erc721.mint(offerer, nft_id2)
     second_erc721.mint(fulfiller, nft_id)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(token=erc721.address, identifier=nft_id),
@@ -36,7 +36,7 @@ def test_swap_erc721_for_erc721(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -50,7 +50,7 @@ def test_swap_erc721_for_erc721(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -63,13 +63,13 @@ def test_swap_erc721_for_erc721(
 
 
 def test_swap_erc1155_for_erc1155(
-    consideration: Consideration, erc1155, second_erc1155, offerer, zone, fulfiller
+    seaport: Seaport, erc1155, second_erc1155, offerer, zone, fulfiller
 ):
     erc1155.mint(offerer, nft_id, erc1155_amount)
     erc1155.mint(offerer, nft_id2, erc1155_amount)
     second_erc1155.mint(fulfiller, nft_id, erc1155_amount)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc1155Item(
@@ -88,7 +88,7 @@ def test_swap_erc1155_for_erc1155(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -102,7 +102,7 @@ def test_swap_erc1155_for_erc1155(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -115,7 +115,7 @@ def test_swap_erc1155_for_erc1155(
 
 
 def test_swap_erc721_and_erc20_for_erc721_and_erc20(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     second_erc721,
     offerer,
@@ -128,7 +128,7 @@ def test_swap_erc721_and_erc20_for_erc721_and_erc20(
     erc20.mint(offerer, Web3.toWei("5", "ether"))
     erc20.mint(fulfiller, Web3.toWei("10", "ether"))
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(
@@ -151,7 +151,7 @@ def test_swap_erc721_and_erc20_for_erc721_and_erc20(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -165,7 +165,7 @@ def test_swap_erc721_and_erc20_for_erc721_and_erc20(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -176,7 +176,7 @@ def test_swap_erc721_and_erc20_for_erc721_and_erc20(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": second_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     second_approval_action.transaction_methods.transact()
