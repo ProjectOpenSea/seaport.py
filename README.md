@@ -1,21 +1,23 @@
-# consideration.py
+# seaport.py
 
-A library to help interfacing with the Consideration smart contract.
+A library to help interfacing with the Seaport smart contract.
 
 ## Installation
 
 1. Install [pyenv](https://github.com/pyenv/pyenv)
 
-2. Install poetry
+2. Setup Pyenv
 
 ```
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+pyenv install 3.9.12
+pyenv virtualenv 3.9.12 seaport
+pyenv activate seaport
 ```
 
-3. Set the poetry venv to be in the current project directory (useful for VSCode):
+3. Install Poetry
 
 ```
-poetry config virtualenvs.in-project true
+pip install poetry==1.1.13
 ```
 
 4. Run `poetry install`

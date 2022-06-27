@@ -3,12 +3,11 @@ from typing import Literal, Optional, Sequence, Union
 from pydantic import BaseModel
 from web3 import Web3
 
-from consideration.abi.ERC20 import ERC20_ABI
-from consideration.abi.ERC721 import ERC721_ABI
-from consideration.constants import LEGACY_PROXY_CONDUIT, MAX_INT
-from consideration.types import (
+from seaport.abi.ERC20 import ERC20_ABI
+from seaport.abi.ERC721 import ERC721_ABI
+from seaport.constants import MAX_INT
+from seaport.types import (
     ApprovalAction,
-    ApprovalOperators,
     BalanceAndApproval,
     BalancesAndApprovals,
     ConsiderationItem,
@@ -20,8 +19,8 @@ from consideration.types import (
     Item,
     OfferItem,
 )
-from consideration.utils.balance import balance_of
-from consideration.utils.item import (
+from seaport.utils.balance import balance_of
+from seaport.utils.item import (
     TimeBasedItemParams,
     TokenAndIdentifierAmounts,
     get_item_index_to_criteria_map,
@@ -29,8 +28,9 @@ from consideration.utils.item import (
     is_erc20_item,
     is_erc721_item,
     is_erc1155_item,
+    is_native_currency_item,
 )
-from consideration.utils.usecase import get_transaction_methods
+from seaport.utils.usecase import get_transaction_methods
 
 
 def approved_item_amount(owner: str, item: Item, operator: str, web3: Web3) -> int:
@@ -130,7 +130,7 @@ def get_balances_and_approvals(
     owner: str,
     items: Sequence[Item],
     criterias: list[InputCriteria],
-    operators: ApprovalOperators,
+    operator: str,
     web3: Web3,
 ):
     item_index_to_criteria = get_item_index_to_criteria_map(
@@ -141,23 +141,16 @@ def get_balances_and_approvals(
         index, item = index_and_item
         approved_amount = 0
 
-        if is_erc721_item(item.itemType) or is_erc1155_item(item.itemType):
-            approved_amount = approved_item_amount(
-                owner=owner,
-                item=item,
-                operator=operators.operator,
-                web3=web3,
-            )
-        elif is_erc20_item(item.itemType):
-            approved_amount = approved_item_amount(
-                owner=owner,
-                item=item,
-                operator=operators.erc20_operator,
-                web3=web3,
-            )
-        else:
+        if is_native_currency_item(item.itemType):
             # If native token, we don't need to check for approvals
             approved_amount = MAX_INT
+        else:
+            approved_amount = approved_item_amount(
+                owner=owner,
+                item=item,
+                operator=operator,
+                web3=web3,
+            )
 
         return BalanceAndApproval(
             token=item.token,
@@ -186,7 +179,7 @@ def get_insufficient_balance_and_approval_amounts(
     *,
     balances_and_approvals: BalancesAndApprovals,
     token_and_identifier_amounts: TokenAndIdentifierAmounts,
-    operators: ApprovalOperators,
+    operator: str,
 ):
     token_and_identifier_and_amount_needed_list: list[tuple[str, int, int]] = []
 
@@ -259,7 +252,7 @@ def get_insufficient_balance_and_approval_amounts(
             approved_amount=insufficient_balance.amount_have,
             required_approved_amount=insufficient_balance.required_amount,
             item_type=insufficient_balance.item_type,
-            operator="",
+            operator=operator,
         )
 
     (insufficient_balances, insufficient_approvals,) = (
@@ -267,38 +260,23 @@ def get_insufficient_balance_and_approval_amounts(
         list(map(map_to_approval, filter_balances_or_approvals("approved_amount"))),
     )
 
-    def map_operator(
-        insufficient_approval: InsufficientApproval,
-    ) -> InsufficientApproval:
-        operator = (
-            operators.erc20_operator
-            if is_erc20_item(insufficient_approval.item_type)
-            else operators.operator
-        )
-
-        return insufficient_approval.copy(update={"operator": operator})
-
     return InsufficientBalanceAndApprovalAmounts(
         insufficient_balances=insufficient_balances,
-        insufficient_approvals=list(map(map_operator, insufficient_approvals)),
+        insufficient_approvals=insufficient_approvals,
     )
 
 
 # 1. The offerer should have sufficient balance of all offered items.
-# 2. If the order does not indicate proxy utilization, the offerer should have sufficient approvals set
-#    for the Consideration contract for all offered ERC20, ERC721, and ERC1155 items.
-# 3. If the order does indicate proxy utilization, the offerer should have sufficient approvals set
-#    for their respective proxy contract for all offered ERC20, ERC721, and ERC1155 items.
+# 2. The offerer should have sufficient approvals set for the correct operator for all offered ERC20, ERC721, and ERC1155 items.
 def validate_offer_balances_and_approvals(
     *,
     offer: list[OfferItem],
-    conduit: str,
     criterias: list[InputCriteria],
     balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams] = None,
-    operators: ApprovalOperators,
     throw_on_insufficient_balances=True,
     throw_on_insufficient_approvals=False,
+    operator: str,
 ):
     insufficient_balance_and_approval_amounts = (
         get_insufficient_balance_and_approval_amounts(
@@ -312,7 +290,7 @@ def validate_offer_balances_and_approvals(
                 if time_based_item_params
                 else None,
             ),
-            operators=operators,
+            operator=operator,
         )
     )
 
@@ -340,7 +318,7 @@ def validate_offer_balances_and_approvals(
 #    an ERC20 item and requires an ERC721 item to the offerer and the same ERC20 item to another recipient,
 #    the fulfiller needs to own the ERC721 item but does not need to own the ERC20 item as it will be sourced from the offerer.
 # 3. If the fulfiller does not elect to utilize a proxy, they need to have sufficient approvals set for the
-#    Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order except
+#    Seaport contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order except
 #    for ERC20 items with an item type that matches the order's offered item type.
 # 4. If the fulfiller does elect to utilize a proxy, they need to have sufficient approvals set for their
 #    respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order
@@ -350,22 +328,20 @@ def validate_offer_balances_and_approvals(
 def validate_basic_fulfill_balances_and_approvals(
     *,
     offer: list[OfferItem],
-    conduit: str,
     consideration: list[ConsiderationItem],
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
-    offerer_operators: ApprovalOperators,
-    fulfiller_operators: ApprovalOperators,
+    offerer_operator: str,
+    fulfiller_operator: str,
 ) -> InsufficientApprovals:
     validate_offer_balances_and_approvals(
         offer=offer,
-        conduit=conduit,
         criterias=[],
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
-        operators=offerer_operators,
+        operator=offerer_operator,
     )
 
     consideration_without_offer_item_type = list(
@@ -384,7 +360,7 @@ def validate_basic_fulfill_balances_and_approvals(
                 if time_based_item_params
                 else None,
             ),
-            operators=fulfiller_operators,
+            operator=fulfiller_operator,
         )
     )
 
@@ -401,7 +377,7 @@ def validate_basic_fulfill_balances_and_approvals(
 #    and the same ERC20 item to another recipient with an amount less than or equal to the offered amount,
 #    the fulfiller does not need to own the ERC20 item as it will first be received from the offerer.
 # 3. If the fulfiller does not elect to utilize a proxy, they need to have sufficient approvals set for the
-#    Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
+#    Seaport contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
 # 4. If the fulfiller does elect to utilize a proxy, they need to have sufficient approvals set for their
 #    respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
 # 5. If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must
@@ -409,24 +385,22 @@ def validate_basic_fulfill_balances_and_approvals(
 def validate_standard_fulfill_balances_and_approvals(
     *,
     offer: list[OfferItem],
-    conduit: str,
     consideration: list[ConsiderationItem],
     offer_criteria: list[InputCriteria],
     consideration_criteria: list[InputCriteria],
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: Optional[TimeBasedItemParams],
-    offerer_operators: ApprovalOperators,
-    fulfiller_operators: ApprovalOperators,
+    offerer_operator: str,
+    fulfiller_operator: str,
 ) -> InsufficientApprovals:
     validate_offer_balances_and_approvals(
         offer=offer,
-        conduit=conduit,
         criterias=offer_criteria,
         balances_and_approvals=offerer_balances_and_approvals,
         time_based_item_params=time_based_item_params,
         throw_on_insufficient_approvals=True,
-        operators=offerer_operators,
+        operator=offerer_operator,
     )
 
     summed_offer_amounts = get_summed_token_and_identifier_amounts(
@@ -473,14 +447,10 @@ def validate_standard_fulfill_balances_and_approvals(
             if time_based_item_params
             else None,
         ),
-        operators=fulfiller_operators,
+        operator=fulfiller_operator,
     )
 
     if insufficient_balance_and_approval_amounts.insufficient_balances:
         raise ValueError("The fulfiller does not have the balances needed to fulfill.")
 
     return insufficient_balance_and_approval_amounts.insufficient_approvals
-
-
-def use_offerer_proxy(conduit: str):
-    return conduit == LEGACY_PROXY_CONDUIT

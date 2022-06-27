@@ -2,12 +2,12 @@ from typing import Optional
 
 from web3 import Web3
 
-from consideration.abi.ERC20 import ERC20_ABI
-from consideration.abi.ERC721 import ERC721_ABI
-from consideration.abi.ERC1155 import ERC1155_ABI
-from consideration.constants import ItemType
-from consideration.types import InputCriteria, Item
-from consideration.utils.item import is_erc20_item, is_erc721_item, is_erc1155_item
+from seaport.abi.ERC20 import ERC20_ABI
+from seaport.abi.ERC721 import ERC721_ABI
+from seaport.abi.ERC1155 import ERC1155_ABI
+from seaport.constants import ItemType
+from seaport.types import InputCriteria, Item
+from seaport.utils.item import is_erc20_item, is_erc721_item, is_erc1155_item
 
 
 def balance_of(

@@ -1,8 +1,8 @@
 from web3 import Web3
 
-from consideration.consideration import Consideration
-from consideration.constants import ItemType
-from consideration.types import (
+from seaport.seaport import Seaport
+from seaport.constants import ItemType
+from seaport.types import (
     ConsiderationCurrencyItem,
     ConsiderationErc721Item,
     ConsiderationErc1155Item,
@@ -17,13 +17,13 @@ erc1155_amount = 3
 
 
 def test_bundle_erc721_buy_now(
-    consideration: Consideration, erc721, second_erc721, offerer, zone, fulfiller
+    seaport: Seaport, erc721, second_erc721, offerer, zone, fulfiller
 ):
     erc721.mint(offerer, nft_id)
     erc721.mint(offerer, nft_id2)
     second_erc721.mint(offerer, nft_id)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(token=erc721.address, identifier=nft_id),
@@ -42,7 +42,7 @@ def test_bundle_erc721_buy_now(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -56,13 +56,13 @@ def test_bundle_erc721_buy_now(
 
 
 def test_bundle_erc721_buy_now_with_erc20(
-    consideration: Consideration, erc721, erc20, second_erc721, offerer, zone, fulfiller
+    seaport: Seaport, erc721, erc20, second_erc721, offerer, zone, fulfiller
 ):
     erc721.mint(offerer, nft_id)
     erc721.mint(offerer, nft_id2)
     second_erc721.mint(offerer, nft_id)
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(token=erc721.address, identifier=nft_id),
@@ -85,7 +85,7 @@ def test_bundle_erc721_buy_now_with_erc20(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -98,7 +98,7 @@ def test_bundle_erc721_buy_now_with_erc20(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -110,14 +110,14 @@ def test_bundle_erc721_buy_now_with_erc20(
 
 
 def test_bundle_erc721_accept_offer(
-    consideration: Consideration, erc721, second_erc721, erc20, offerer, zone, fulfiller
+    seaport: Seaport, erc721, second_erc721, erc20, offerer, zone, fulfiller
 ):
     erc721.mint(fulfiller, nft_id)
     erc721.mint(fulfiller, nft_id2)
     second_erc721.mint(fulfiller, nft_id)
     erc20.mint(offerer, Web3.toWei(11, "ether"))
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferCurrencyItem(
@@ -147,7 +147,7 @@ def test_bundle_erc721_accept_offer(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -166,7 +166,7 @@ def test_bundle_erc721_accept_offer(
         "identifier_or_criteria": nft_id2,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": erc721_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc721_approval_action.transaction_methods.transact()
@@ -177,7 +177,7 @@ def test_bundle_erc721_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": second_erc721_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     second_erc721_approval_action.transaction_methods.transact()
@@ -188,7 +188,7 @@ def test_bundle_erc721_accept_offer(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": erc20_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc20_approval_action.transaction_methods.transact()
@@ -201,7 +201,7 @@ def test_bundle_erc721_accept_offer(
 
 
 def test_bundle_erc721_and_erc1155_buy_now(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     second_erc721,
     erc1155,
@@ -213,7 +213,7 @@ def test_bundle_erc721_and_erc1155_buy_now(
     second_erc721.mint(offerer, nft_id)
     erc1155.mint(offerer, nft_id, erc1155_amount)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(token=erc721.address, identifier=nft_id),
@@ -234,7 +234,7 @@ def test_bundle_erc721_and_erc1155_buy_now(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -248,7 +248,7 @@ def test_bundle_erc721_and_erc1155_buy_now(
 
 
 def test_bundle_erc721_and_erc1155_buy_now_with_erc20(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     erc20,
     second_erc721,
@@ -261,7 +261,7 @@ def test_bundle_erc721_and_erc1155_buy_now_with_erc20(
     second_erc721.mint(offerer, nft_id)
     erc1155.mint(offerer, nft_id, erc1155_amount)
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(token=erc721.address, identifier=nft_id),
@@ -286,7 +286,7 @@ def test_bundle_erc721_and_erc1155_buy_now_with_erc20(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -299,7 +299,7 @@ def test_bundle_erc721_and_erc1155_buy_now_with_erc20(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -311,7 +311,7 @@ def test_bundle_erc721_and_erc1155_buy_now_with_erc20(
 
 
 def test_bundle_erc721_and_erc1155_accept_offer(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     second_erc721,
     erc20,
@@ -325,7 +325,7 @@ def test_bundle_erc721_and_erc1155_accept_offer(
     erc1155.mint(fulfiller, nft_id, erc1155_amount)
     erc20.mint(offerer, Web3.toWei(11, "ether"))
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferCurrencyItem(
@@ -358,7 +358,7 @@ def test_bundle_erc721_and_erc1155_accept_offer(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -378,7 +378,7 @@ def test_bundle_erc721_and_erc1155_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": erc721_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc721_approval_action.transaction_methods.transact()
@@ -389,7 +389,7 @@ def test_bundle_erc721_and_erc1155_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": second_erc721_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     second_erc721_approval_action.transaction_methods.transact()
@@ -400,7 +400,7 @@ def test_bundle_erc721_and_erc1155_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": erc1155_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc1155_approval_action.transaction_methods.transact()
@@ -411,7 +411,7 @@ def test_bundle_erc721_and_erc1155_accept_offer(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": erc20_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc20_approval_action.transaction_methods.transact()
@@ -424,13 +424,13 @@ def test_bundle_erc721_and_erc1155_accept_offer(
 
 
 def test_bundle_erc1155_buy_now(
-    consideration: Consideration, erc1155, second_erc1155, offerer, zone, fulfiller
+    seaport: Seaport, erc1155, second_erc1155, offerer, zone, fulfiller
 ):
     erc1155.mint(offerer, nft_id, erc1155_amount)
     erc1155.mint(offerer, nft_id2, erc1155_amount)
     second_erc1155.mint(offerer, nft_id, erc1155_amount)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc1155Item(
@@ -455,7 +455,7 @@ def test_bundle_erc1155_buy_now(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -469,7 +469,7 @@ def test_bundle_erc1155_buy_now(
 
 
 def test_bundle_erc1155_buy_now_with_erc20(
-    consideration: Consideration,
+    seaport: Seaport,
     erc1155,
     erc20,
     second_erc1155,
@@ -481,7 +481,7 @@ def test_bundle_erc1155_buy_now_with_erc20(
     erc1155.mint(offerer, nft_id2, erc1155_amount)
     second_erc1155.mint(offerer, nft_id, erc1155_amount)
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc1155Item(
@@ -510,7 +510,7 @@ def test_bundle_erc1155_buy_now_with_erc20(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -523,7 +523,7 @@ def test_bundle_erc1155_buy_now_with_erc20(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -535,7 +535,7 @@ def test_bundle_erc1155_buy_now_with_erc20(
 
 
 def test_bundle_erc1155_accept_offer(
-    consideration: Consideration,
+    seaport: Seaport,
     erc1155,
     second_erc1155,
     erc20,
@@ -548,7 +548,7 @@ def test_bundle_erc1155_accept_offer(
     second_erc1155.mint(fulfiller, nft_id, erc1155_amount)
     erc20.mint(offerer, Web3.toWei(11, "ether"))
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferCurrencyItem(
@@ -585,7 +585,7 @@ def test_bundle_erc1155_accept_offer(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address
     )
 
@@ -604,7 +604,7 @@ def test_bundle_erc1155_accept_offer(
         "identifier_or_criteria": nft_id2,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": erc1155_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc1155_approval_action.transaction_methods.transact()
@@ -615,7 +615,7 @@ def test_bundle_erc1155_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": second_erc1155_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     second_erc1155_approval_action.transaction_methods.transact()
@@ -626,7 +626,7 @@ def test_bundle_erc1155_accept_offer(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": erc20_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc20_approval_action.transaction_methods.transact()

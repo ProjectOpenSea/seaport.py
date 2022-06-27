@@ -9,9 +9,8 @@ from web3.constants import ADDRESS_ZERO
 from web3.contract import Contract
 from web3.types import TxParams
 
-from consideration.constants import BasicOrderRouteType, ItemType
-from consideration.types import (
-    ApprovalOperators,
+from seaport.constants import BasicOrderRouteType, ItemType
+from seaport.types import (
     BalancesAndApprovals,
     ConsiderationItem,
     ExchangeAction,
@@ -23,14 +22,13 @@ from consideration.types import (
     OrderParameters,
     OrderStatus,
 )
-from consideration.utils.balance_and_approval_check import (
+from seaport.utils.balance_and_approval_check import (
     get_approval_actions,
-    use_offerer_proxy,
     validate_basic_fulfill_balances_and_approvals,
     validate_standard_fulfill_balances_and_approvals,
 )
-from consideration.utils.gcd import gcd
-from consideration.utils.item import (
+from seaport.utils.gcd import gcd
+from seaport.utils.item import (
     TimeBasedItemParams,
     generate_criteria_resolvers,
     get_item_index_to_criteria_map,
@@ -42,14 +40,14 @@ from consideration.utils.item import (
     is_erc721_item,
     is_native_currency_item,
 )
-from consideration.utils.order import (
+from seaport.utils.order import (
     are_all_currencies_same,
     map_order_amounts_from_filled_status,
     map_order_amounts_from_units_to_fill,
     total_items_amount,
 )
-from consideration.utils.pydantic import parse_model_list
-from consideration.utils.usecase import execute_all_actions, get_transaction_methods
+from seaport.utils.pydantic import parse_model_list
+from seaport.utils.usecase import execute_all_actions, get_transaction_methods
 
 
 def should_use_basic_fulfill(
@@ -215,16 +213,16 @@ def get_basic_order_route_type(
 
 
 def fulfill_basic_order(
-    conduit: str,
+    conduit_key: str,
     order: Order,
-    consideration_contract: Contract,
+    seaport_contract: Contract,
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: TimeBasedItemParams,
     fulfiller: str,
-    offerer_operators: ApprovalOperators,
-    fulfiller_operators: ApprovalOperators,
     tips: list[ConsiderationItem],
+    offerer_operator: str,
+    fulfiller_operator: str,
     web3: Web3,
 ):
     consideration_including_tips = list(chain(order.parameters.consideration, tips))
@@ -267,18 +265,17 @@ def fulfill_basic_order(
 
     insufficient_approvals = validate_basic_fulfill_balances_and_approvals(
         offer=order.parameters.offer,
-        conduit=order.parameters.conduit,
         consideration=consideration_including_tips,
         offerer_balances_and_approvals=offerer_balances_and_approvals,
         fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
         time_based_item_params=time_based_item_params,
-        offerer_operators=offerer_operators,
-        fulfiller_operators=fulfiller_operators,
+        offerer_operator=offerer_operator,
+        fulfiller_operator=fulfiller_operator,
     )
 
     basic_order_parameters = {
         "offerer": order.parameters.offerer,
-        "offererConduit": order.parameters.conduit,
+        "offererConduitKey": order.parameters.conduitKey,
         "zone": order.parameters.zone,
         # Note the use of a "basicOrderType" enum;
         # this represents both the usual order type as well as the "route"
@@ -297,7 +294,7 @@ def fulfill_basic_order(
         "salt": order.parameters.salt,
         "totalOriginalAdditionalRecipients": len(order.parameters.consideration) - 1,
         "signature": order.signature,
-        "fulfillerConduit": conduit,
+        "fulfillerConduitKey": conduit_key,
         "additionalRecipients": additional_recipients,
         "zoneHash": order.parameters.zoneHash,
     }
@@ -310,7 +307,7 @@ def fulfill_basic_order(
     )
     exchange_action = ExchangeAction(
         transaction_methods=get_transaction_methods(
-            consideration_contract.functions.fulfillBasicOrder(basic_order_parameters),
+            seaport_contract.functions.fulfillBasicOrder(basic_order_parameters),
             payable_overrides,
         ),
     )
@@ -325,7 +322,7 @@ def fulfill_basic_order(
 
 def fulfill_standard_order(
     *,
-    conduit: str,
+    conduit_key: str,
     order: Order,
     units_to_fill: int = 0,
     total_size: int,
@@ -334,13 +331,14 @@ def fulfill_standard_order(
     consideration_criteria: list[InputCriteria],
     tips: list[ConsiderationItem],
     extra_data: str = "0x",
-    consideration_contract: Contract,
+    seaport_contract: Contract,
     offerer_balances_and_approvals: BalancesAndApprovals,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
     time_based_item_params: TimeBasedItemParams,
-    offerer_operators: ApprovalOperators,
-    fulfiller_operators: ApprovalOperators,
+    offerer_operator: str,
+    fulfiller_operator: str,
     fulfiller: str,
+    recipient_address: str,
     web3: Web3,
 ):
     # If we are supplying units to fill, we adjust the order by the minimum of the amount to fill and
@@ -361,7 +359,6 @@ def fulfill_standard_order(
 
     offer = order_with_adjusted_fills.parameters.offer
     consideration = order_with_adjusted_fills.parameters.consideration
-    conduit = order_with_adjusted_fills.parameters.conduit
 
     consideration_including_tips = list(chain(consideration, tips))
 
@@ -396,15 +393,14 @@ def fulfill_standard_order(
 
     insufficient_approvals = validate_standard_fulfill_balances_and_approvals(
         offer=offer,
-        conduit=conduit,
         consideration=consideration_including_tips,
         offer_criteria=offer_criteria,
         consideration_criteria=consideration_criteria,
         offerer_balances_and_approvals=offerer_balances_and_approvals,
         fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
         time_based_item_params=time_based_item_params,
-        offerer_operators=offerer_operators,
-        fulfiller_operators=fulfiller_operators,
+        offerer_operator=offerer_operator,
+        fulfiller_operator=fulfiller_operator,
     )
 
     has_criteria_items = bool(offer_criteria_items) or bool(
@@ -417,7 +413,9 @@ def fulfill_standard_order(
         account_address=fulfiller,
     )
 
-    use_advanced = bool(units_to_fill) or has_criteria_items
+    is_gift = recipient_address != ADDRESS_ZERO
+
+    use_advanced = bool(units_to_fill) or has_criteria_items or is_gift
 
     # Used for advanced order cases
     max_units = get_maximum_size_for_order(order)
@@ -446,7 +444,7 @@ def fulfill_standard_order(
 
     exchange_action = ExchangeAction(
         transaction_methods=get_transaction_methods(
-            consideration_contract.functions.fulfillAdvancedOrder(
+            seaport_contract.functions.fulfillAdvancedOrder(
                 {
                     **order_accounting_for_tips.dict(),
                     "numerator": numerator,
@@ -462,14 +460,15 @@ def fulfill_standard_order(
                 )
                 if has_criteria_items
                 else [],
-                conduit,
+                conduit_key,
+                recipient_address,
             ),
             payable_overrides,
         )
         if use_advanced
         else get_transaction_methods(
-            consideration_contract.functions.fulfillOrder(
-                order_accounting_for_tips.dict(), conduit
+            seaport_contract.functions.fulfillOrder(
+                order_accounting_for_tips.dict(), conduit_key
             ),
             payable_overrides,
         )
@@ -492,18 +491,19 @@ class FulfillOrdersMetadata(BaseModel):
     tips: list[ConsiderationItem]
     extra_data: str
     offerer_balances_and_approvals: BalancesAndApprovals
-    offerer_operators: ApprovalOperators
+    offerer_operator: str
 
 
 def fulfill_available_orders(
     orders_metadata: list[FulfillOrdersMetadata],
-    consideration_contract: Contract,
+    seaport_contract: Contract,
     fulfiller_balances_and_approvals: BalancesAndApprovals,
-    fulfiller_operators: ApprovalOperators,
     current_block_timestamp: int,
     ascending_amount_timestamp_buffer: int,
-    conduit: str,
+    conduit_key: str,
     fulfiller: str,
+    fulfiller_operator: str,
+    recipient_address: str,
     web3: Web3,
 ):
     sanitized_orders_metadata = list(
@@ -580,15 +580,14 @@ def fulfill_available_orders(
 
         insufficient_approvals = validate_standard_fulfill_balances_and_approvals(
             offer=order_metadata.order.parameters.offer,
-            conduit=order_metadata.order.parameters.conduit,
             consideration=consideration_including_tips,
             offer_criteria=order_metadata.offer_criteria,
             consideration_criteria=order_metadata.consideration_criteria,
             offerer_balances_and_approvals=order_metadata.offerer_balances_and_approvals,
             fulfiller_balances_and_approvals=fulfiller_balances_and_approvals,
             time_based_item_params=time_based_item_params,
-            offerer_operators=order_metadata.offerer_operators,
-            fulfiller_operators=fulfiller_operators,
+            offerer_operator=order_metadata.offerer_operator,
+            fulfiller_operator=fulfiller_operator,
         )
 
         offer_criteria_items = list(
@@ -662,7 +661,7 @@ def fulfill_available_orders(
 
     exchange_action = ExchangeAction(
         transaction_methods=get_transaction_methods(
-            consideration_contract.functions.fulfillAvailableAdvancedOrders(
+            seaport_contract.functions.fulfillAvailableAdvancedOrders(
                 advanced_orders_with_tips,
                 generate_criteria_resolvers(
                     orders=[order_metadata.order for order_metadata in orders_metadata],
@@ -689,7 +688,9 @@ def fulfill_available_orders(
                         for fulfillment in consideration_fulfillments
                     ]
                 ),
-                conduit,
+                conduit_key,
+                recipient_address,
+                len(advanced_orders_with_tips),
             ),
             payable_overrides,
         )
@@ -706,8 +707,10 @@ def fulfill_available_orders(
 def generate_fulfill_orders_fulfillments(
     orders_metadata: list[FulfillOrdersMetadata],
 ) -> tuple[list[list[FulfillmentComponent]], list[list[FulfillmentComponent]]]:
-    def hash_aggregate_key(source_or_destination: str, token: str, identifier: int):
-        return f"{source_or_destination}-{token}-{identifier}"
+    def hash_aggregate_key(
+        source_or_destination: str, token: str, identifier: int, operator=""
+    ):
+        return f"{source_or_destination}-{operator}-{token}-{identifier}"
 
     offer_aggregated_fulfillments: dict[str, list[FulfillmentComponent]] = {}
     consideration_aggregated_fulfillments: dict[str, list[FulfillmentComponent]] = {}
@@ -718,19 +721,12 @@ def generate_fulfill_orders_fulfillments(
         )
 
         for item_index, item in enumerate(order_metadata.order.parameters.offer):
-            if use_offerer_proxy(order_metadata.order.parameters.conduit):
-                source = (
-                    order_metadata.offerer_operators.erc20_operator
-                    if is_erc20_item(item.itemType)
-                    else order_metadata.offerer_operators.operator
-                )
-            else:
-                source = order_metadata.order.parameters.offerer
             aggregate_key = (
                 hash_aggregate_key(
-                    source,
-                    item.token,
-                    item_index_to_criteria[item_index].identifier
+                    source_or_destination=order_metadata.order.parameters.offerer,
+                    operator=order_metadata.offerer_operator,
+                    token=item.token,
+                    identifier=item_index_to_criteria[item_index].identifier
                     if item_index in item_index_to_criteria
                     else item.identifierOrCriteria,
                 )
@@ -760,9 +756,9 @@ def generate_fulfill_orders_fulfillments(
         ):
             aggregate_key = (
                 hash_aggregate_key(
-                    item.recipient,
-                    item.token,
-                    item_index_to_criteria[item_index].identifier
+                    source_or_destination=item.recipient,
+                    token=item.token,
+                    identifier=item_index_to_criteria[item_index].identifier
                     if item_index in item_index_to_criteria
                     else item.identifierOrCriteria,
                 )

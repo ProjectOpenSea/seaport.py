@@ -2,9 +2,9 @@ import pytest
 from brownie.network.account import Accounts, _PrivateKeyAccount
 from web3 import Web3
 
-from consideration.consideration import Consideration
-from consideration.constants import ItemType
-from consideration.types import (
+from seaport.seaport import Seaport
+from seaport.constants import ItemType
+from seaport.types import (
     OfferErc721Item,
     ConsiderationCurrencyItem,
     FulfillOrderDetails,
@@ -22,7 +22,7 @@ erc1155_amount = 3
 
 
 def test_multiple_orders_erc721_buy_now(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     second_erc721,
     offerer,
@@ -35,7 +35,7 @@ def test_multiple_orders_erc721_buy_now(
     erc721.mint(offerer, nft_id2)
     second_erc721.mint(second_offerer, nft_id)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(token=erc721.address, identifier=nft_id),
@@ -52,7 +52,7 @@ def test_multiple_orders_erc721_buy_now(
 
     order = use_case.execute_all_actions()
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc721Item(token=erc721.address, identifier=nft_id2),
@@ -69,7 +69,7 @@ def test_multiple_orders_erc721_buy_now(
 
     second_order = use_case.execute_all_actions()
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=second_offerer.address,
         offer=[
             OfferErc721Item(token=second_erc721.address, identifier=nft_id),
@@ -86,7 +86,7 @@ def test_multiple_orders_erc721_buy_now(
 
     third_order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_orders(
+    fulfill_order_use_case = seaport.fulfill_orders(
         fulfill_order_details=[
             FulfillOrderDetails(order=order),
             FulfillOrderDetails(order=second_order),

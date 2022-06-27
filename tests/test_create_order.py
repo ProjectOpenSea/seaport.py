@@ -3,11 +3,11 @@ from eth_utils.currency import to_wei
 from web3 import Web3
 from web3.constants import ADDRESS_ZERO
 
-from consideration.consideration import Consideration
-from consideration.constants import MAX_INT, ItemType, OrderType
-from consideration.types import (
+from seaport.seaport import Seaport
+from seaport.constants import MAX_INT, ItemType, OrderType
+from seaport.types import (
     ApprovalAction,
-    ConsiderationConfig,
+    SeaportConfig,
     ConsiderationCurrencyItem,
     ConsiderationErc721Item,
     ContractOverrides,
@@ -17,7 +17,7 @@ from consideration.types import (
     OfferErc721Item,
     OfferErc1155Item,
 )
-from consideration.utils.order import generate_random_salt
+from seaport.utils.order import generate_random_salt
 
 nft_id = 1
 start_time = 0
@@ -25,11 +25,9 @@ end_time = MAX_INT
 salt = generate_random_salt()
 
 
-def test_create_order_success(
-    consideration: Consideration, erc721, offerer, zone, fulfiller
-):
+def test_create_order_success(seaport: Seaport, erc721, offerer, zone, fulfiller):
     erc721.mint(offerer, nft_id)
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         start_time=start_time,
         end_time=end_time,
         salt=salt,
@@ -48,12 +46,12 @@ def test_create_order_success(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
 
-    assert erc721.isApprovedForAll(offerer, consideration.contract.address)
+    assert erc721.isApprovedForAll(offerer, seaport.contract.address)
 
     assert isinstance(create_order_action, CreateOrderAction)
 
@@ -101,10 +99,10 @@ def test_create_order_success(
             "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
-        "nonce": 0,
+        "counter": 0,
     }
 
-    is_valid = consideration.contract.functions.validate([order_dict]).call(
+    is_valid = seaport.contract.functions.validate([order_dict]).call(
         {"from": fulfiller.address}
     )
 
@@ -112,10 +110,10 @@ def test_create_order_success(
 
 
 def test_create_order_offer_erc20_for_erc721(
-    consideration: Consideration, erc20, erc721, offerer, zone, fulfiller
+    seaport: Seaport, erc20, erc721, offerer, zone, fulfiller
 ):
     erc20.mint(offerer, to_wei(10, "ether"))
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         start_time=start_time,
         end_time=end_time,
         salt=salt,
@@ -136,12 +134,12 @@ def test_create_order_offer_erc20_for_erc721(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
 
-    assert erc20.allowance(offerer, consideration.contract.address) == MAX_INT
+    assert erc20.allowance(offerer, seaport.contract.address) == MAX_INT
 
     assert isinstance(create_order_action, CreateOrderAction)
 
@@ -189,10 +187,10 @@ def test_create_order_offer_erc20_for_erc721(
             "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
-        "nonce": 0,
+        "counter": 0,
     }
 
-    is_valid = consideration.contract.functions.validate([order_dict]).call(
+    is_valid = seaport.contract.functions.validate([order_dict]).call(
         {"from": fulfiller.address}
     )
 
@@ -200,7 +198,7 @@ def test_create_order_offer_erc20_for_erc721(
 
 
 def test_create_order_offer_erc20_and_erc1155(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     offerer,
     zone,
@@ -210,7 +208,7 @@ def test_create_order_offer_erc20_and_erc1155(
     erc721.mint(offerer, nft_id)
     erc1155.mint(offerer, nft_id, 1)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         start_time=start_time,
         end_time=end_time,
         salt=salt,
@@ -233,12 +231,12 @@ def test_create_order_offer_erc20_and_erc1155(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC721.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
 
-    assert erc721.isApprovedForAll(offerer, consideration.contract.address)
+    assert erc721.isApprovedForAll(offerer, seaport.contract.address)
 
     assert isinstance(second_approval_action, ApprovalAction)
 
@@ -248,12 +246,12 @@ def test_create_order_offer_erc20_and_erc1155(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": second_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     second_approval_action.transaction_methods.transact()
 
-    assert erc1155.isApprovedForAll(offerer, consideration.contract.address)
+    assert erc1155.isApprovedForAll(offerer, seaport.contract.address)
 
     assert isinstance(create_order_action, CreateOrderAction)
 
@@ -308,10 +306,10 @@ def test_create_order_offer_erc20_and_erc1155(
             "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
-        "nonce": 0,
+        "counter": 0,
     }
 
-    is_valid = consideration.contract.functions.validate([order_dict]).call(
+    is_valid = seaport.contract.functions.validate([order_dict]).call(
         {"from": fulfiller.address}
     )
 
@@ -319,7 +317,7 @@ def test_create_order_offer_erc20_and_erc1155(
 
 
 def test_raises_if_currencies_are_different(
-    consideration: Consideration,
+    seaport: Seaport,
     erc721,
     erc20,
     offerer,
@@ -331,7 +329,7 @@ def test_raises_if_currencies_are_different(
     with pytest.raises(
         ValueError, match="All currency tokens in the order must be the same token"
     ):
-        consideration.create_order(
+        seaport.create_order(
             start_time=start_time,
             end_time=end_time,
             salt=salt,
@@ -345,7 +343,7 @@ def test_raises_if_currencies_are_different(
 
 
 def test_raises_if_offerer_insufficient_balance(
-    consideration: Consideration, erc721, offerer, zone
+    seaport: Seaport, erc721, offerer, zone
 ):
     erc721.mint(zone, nft_id)
 
@@ -353,7 +351,7 @@ def test_raises_if_offerer_insufficient_balance(
         ValueError,
         match="The offerer does not have the amount needed to create or fulfill",
     ):
-        consideration.create_order(
+        seaport.create_order(
             start_time=start_time,
             end_time=end_time,
             salt=salt,
@@ -367,7 +365,7 @@ def test_raises_if_offerer_insufficient_balance(
 
 
 def test_skip_balance_and_approval_validation_if_config_skips(
-    consideration_contract,
+    seaport_contract,
     legacy_proxy_registry,
     legacy_token_transfer_proxy,
     erc721,
@@ -375,11 +373,11 @@ def test_skip_balance_and_approval_validation_if_config_skips(
     zone,
     fulfiller,
 ):
-    consideration = Consideration(
+    consideration = Seaport(
         provider=Web3.HTTPProvider("http://127.0.0.1:8545"),
-        config=ConsiderationConfig(
+        config=SeaportConfig(
             overrides=ContractOverrides(
-                contract_address=consideration_contract.address,
+                contract_address=seaport_contract.address,
                 legacy_proxy_registry_address=legacy_proxy_registry.address,
                 legacy_token_transfer_proxy_address=legacy_token_transfer_proxy.address,
             ),
@@ -389,7 +387,7 @@ def test_skip_balance_and_approval_validation_if_config_skips(
 
     erc721.mint(fulfiller, nft_id)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         start_time=start_time,
         end_time=end_time,
         salt=salt,
@@ -446,10 +444,10 @@ def test_skip_balance_and_approval_validation_if_config_skips(
             "conduit": ADDRESS_ZERO,
         },
         "signature": order.signature,
-        "nonce": 0,
+        "counter": 0,
     }
 
-    is_valid = consideration.contract.functions.validate([order_dict]).call(
+    is_valid = seaport.contract.functions.validate([order_dict]).call(
         {"from": fulfiller.address}
     )
 

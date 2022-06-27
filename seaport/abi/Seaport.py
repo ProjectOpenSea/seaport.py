@@ -1,16 +1,7 @@
-CONSIDERATION_ABI = [
+SEAPORT_ABI = [
     {
         "inputs": [
-            {
-                "internalType": "address",
-                "name": "legacyProxyRegistry",
-                "type": "address",
-            },
-            {
-                "internalType": "address",
-                "name": "requiredProxyImplementation",
-                "type": "address",
-            },
+            {"internalType": "address", "name": "conduitController", "type": "address"}
         ],
         "stateMutability": "nonpayable",
         "type": "constructor",
@@ -66,11 +57,23 @@ CONSIDERATION_ABI = [
         "name": "EtherTransferGenericFailure",
         "type": "error",
     },
-    {"inputs": [], "name": "FulfilledOrderIndexOutOfRange", "type": "error"},
     {"inputs": [], "name": "InexactFraction", "type": "error"},
     {"inputs": [], "name": "InsufficientEtherSupplied", "type": "error"},
     {"inputs": [], "name": "InvalidBasicOrderParameterEncoding", "type": "error"},
+    {
+        "inputs": [{"internalType": "address", "name": "conduit", "type": "address"}],
+        "name": "InvalidCallToConduit",
+        "type": "error",
+    },
     {"inputs": [], "name": "InvalidCanceller", "type": "error"},
+    {
+        "inputs": [
+            {"internalType": "bytes32", "name": "conduitKey", "type": "bytes32"},
+            {"internalType": "address", "name": "conduit", "type": "address"},
+        ],
+        "name": "InvalidConduit",
+        "type": "error",
+    },
     {"inputs": [], "name": "InvalidERC721TransferAmount", "type": "error"},
     {"inputs": [], "name": "InvalidFulfillmentComponentData", "type": "error"},
     {
@@ -79,7 +82,6 @@ CONSIDERATION_ABI = [
         "type": "error",
     },
     {"inputs": [], "name": "InvalidProof", "type": "error"},
-    {"inputs": [], "name": "InvalidProxyImplementation", "type": "error"},
     {
         "inputs": [{"internalType": "bytes32", "name": "orderHash", "type": "bytes32"}],
         "name": "InvalidRestrictedOrder",
@@ -90,20 +92,15 @@ CONSIDERATION_ABI = [
     {"inputs": [], "name": "InvalidTime", "type": "error"},
     {
         "inputs": [],
-        "name": "MismatchedFulfillmentConsiderationComponents",
-        "type": "error",
-    },
-    {
-        "inputs": [],
         "name": "MismatchedFulfillmentOfferAndConsiderationComponents",
         "type": "error",
     },
-    {"inputs": [], "name": "MismatchedFulfillmentOfferComponents", "type": "error"},
     {
         "inputs": [{"internalType": "enum Side", "name": "side", "type": "uint8"}],
         "name": "MissingFulfillmentComponentOnAggregation",
         "type": "error",
     },
+    {"inputs": [], "name": "MissingItemAmount", "type": "error"},
     {"inputs": [], "name": "MissingOriginalConsiderationItems", "type": "error"},
     {
         "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
@@ -154,7 +151,7 @@ CONSIDERATION_ABI = [
             {
                 "indexed": False,
                 "internalType": "uint256",
-                "name": "newNonce",
+                "name": "newCounter",
                 "type": "uint256",
             },
             {
@@ -164,7 +161,7 @@ CONSIDERATION_ABI = [
                 "type": "address",
             },
         ],
-        "name": "NonceIncremented",
+        "name": "CounterIncremented",
         "type": "event",
     },
     {
@@ -216,7 +213,7 @@ CONSIDERATION_ABI = [
             {
                 "indexed": False,
                 "internalType": "address",
-                "name": "fulfiller",
+                "name": "recipient",
                 "type": "address",
             },
             {
@@ -294,13 +291,6 @@ CONSIDERATION_ABI = [
         "type": "event",
     },
     {
-        "inputs": [],
-        "name": "DOMAIN_SEPARATOR",
-        "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
         "inputs": [
             {
                 "components": [
@@ -384,8 +374,12 @@ CONSIDERATION_ABI = [
                     {"internalType": "uint256", "name": "endTime", "type": "uint256"},
                     {"internalType": "bytes32", "name": "zoneHash", "type": "bytes32"},
                     {"internalType": "uint256", "name": "salt", "type": "uint256"},
-                    {"internalType": "address", "name": "conduit", "type": "address"},
-                    {"internalType": "uint256", "name": "nonce", "type": "uint256"},
+                    {
+                        "internalType": "bytes32",
+                        "name": "conduitKey",
+                        "type": "bytes32",
+                    },
+                    {"internalType": "uint256", "name": "counter", "type": "uint256"},
                 ],
                 "internalType": "struct OrderComponents[]",
                 "name": "orders",
@@ -393,7 +387,7 @@ CONSIDERATION_ABI = [
             }
         ],
         "name": "cancel",
-        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "outputs": [{"internalType": "bool", "name": "cancelled", "type": "bool"}],
         "stateMutability": "nonpayable",
         "type": "function",
     },
@@ -508,9 +502,9 @@ CONSIDERATION_ABI = [
                                 "type": "uint256",
                             },
                             {
-                                "internalType": "address",
-                                "name": "conduit",
-                                "type": "address",
+                                "internalType": "bytes32",
+                                "name": "conduitKey",
+                                "type": "bytes32",
                             },
                             {
                                 "internalType": "uint256",
@@ -559,10 +553,15 @@ CONSIDERATION_ABI = [
                 "name": "criteriaResolvers",
                 "type": "tuple[]",
             },
-            {"internalType": "address", "name": "fulfillerConduit", "type": "address"},
+            {
+                "internalType": "bytes32",
+                "name": "fulfillerConduitKey",
+                "type": "bytes32",
+            },
+            {"internalType": "address", "name": "recipient", "type": "address"},
         ],
         "name": "fulfillAdvancedOrder",
-        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "outputs": [{"internalType": "bool", "name": "fulfilled", "type": "bool"}],
         "stateMutability": "payable",
         "type": "function",
     },
@@ -677,9 +676,9 @@ CONSIDERATION_ABI = [
                                 "type": "uint256",
                             },
                             {
-                                "internalType": "address",
-                                "name": "conduit",
-                                "type": "address",
+                                "internalType": "bytes32",
+                                "name": "conduitKey",
+                                "type": "bytes32",
                             },
                             {
                                 "internalType": "uint256",
@@ -754,7 +753,13 @@ CONSIDERATION_ABI = [
                 "name": "considerationFulfillments",
                 "type": "tuple[][]",
             },
-            {"internalType": "address", "name": "fulfillerConduit", "type": "address"},
+            {
+                "internalType": "bytes32",
+                "name": "fulfillerConduitKey",
+                "type": "bytes32",
+            },
+            {"internalType": "address", "name": "recipient", "type": "address"},
+            {"internalType": "uint256", "name": "maximumFulfilled", "type": "uint256"},
         ],
         "name": "fulfillAvailableAdvancedOrders",
         "outputs": [
@@ -794,127 +799,17 @@ CONSIDERATION_ABI = [
                         "type": "tuple",
                     },
                     {"internalType": "address", "name": "offerer", "type": "address"},
-                    {"internalType": "address", "name": "conduit", "type": "address"},
+                    {
+                        "internalType": "bytes32",
+                        "name": "conduitKey",
+                        "type": "bytes32",
+                    },
                 ],
                 "internalType": "struct Execution[]",
-                "name": "standardExecutions",
-                "type": "tuple[]",
-            },
-            {
-                "components": [
-                    {"internalType": "address", "name": "token", "type": "address"},
-                    {"internalType": "address", "name": "from", "type": "address"},
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {
-                        "internalType": "uint256[]",
-                        "name": "tokenIds",
-                        "type": "uint256[]",
-                    },
-                    {
-                        "internalType": "uint256[]",
-                        "name": "amounts",
-                        "type": "uint256[]",
-                    },
-                    {"internalType": "address", "name": "conduit", "type": "address"},
-                ],
-                "internalType": "struct BatchExecution[]",
-                "name": "batchExecutions",
+                "name": "executions",
                 "type": "tuple[]",
             },
         ],
-        "stateMutability": "payable",
-        "type": "function",
-    },
-    {
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "address",
-                        "name": "considerationToken",
-                        "type": "address",
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "considerationIdentifier",
-                        "type": "uint256",
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "considerationAmount",
-                        "type": "uint256",
-                    },
-                    {
-                        "internalType": "address payable",
-                        "name": "offerer",
-                        "type": "address",
-                    },
-                    {"internalType": "address", "name": "zone", "type": "address"},
-                    {
-                        "internalType": "address",
-                        "name": "offerToken",
-                        "type": "address",
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "offerIdentifier",
-                        "type": "uint256",
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "offerAmount",
-                        "type": "uint256",
-                    },
-                    {
-                        "internalType": "enum BasicOrderType",
-                        "name": "basicOrderType",
-                        "type": "uint8",
-                    },
-                    {"internalType": "uint256", "name": "startTime", "type": "uint256"},
-                    {"internalType": "uint256", "name": "endTime", "type": "uint256"},
-                    {"internalType": "bytes32", "name": "zoneHash", "type": "bytes32"},
-                    {"internalType": "uint256", "name": "salt", "type": "uint256"},
-                    {
-                        "internalType": "address",
-                        "name": "offererConduit",
-                        "type": "address",
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "fulfillerConduit",
-                        "type": "address",
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "totalOriginalAdditionalRecipients",
-                        "type": "uint256",
-                    },
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint256",
-                                "name": "amount",
-                                "type": "uint256",
-                            },
-                            {
-                                "internalType": "address payable",
-                                "name": "recipient",
-                                "type": "address",
-                            },
-                        ],
-                        "internalType": "struct AdditionalRecipient[]",
-                        "name": "additionalRecipients",
-                        "type": "tuple[]",
-                    },
-                    {"internalType": "bytes", "name": "signature", "type": "bytes"},
-                ],
-                "internalType": "struct BasicOrderParameters",
-                "name": "parameters",
-                "type": "tuple",
-            }
-        ],
-        "name": "fulfillBasicOrder",
-        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
         "stateMutability": "payable",
         "type": "function",
     },
@@ -1029,9 +924,318 @@ CONSIDERATION_ABI = [
                                 "type": "uint256",
                             },
                             {
+                                "internalType": "bytes32",
+                                "name": "conduitKey",
+                                "type": "bytes32",
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "totalOriginalConsiderationItems",
+                                "type": "uint256",
+                            },
+                        ],
+                        "internalType": "struct OrderParameters",
+                        "name": "parameters",
+                        "type": "tuple",
+                    },
+                    {"internalType": "bytes", "name": "signature", "type": "bytes"},
+                ],
+                "internalType": "struct Order[]",
+                "name": "orders",
+                "type": "tuple[]",
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "orderIndex",
+                        "type": "uint256",
+                    },
+                    {"internalType": "uint256", "name": "itemIndex", "type": "uint256"},
+                ],
+                "internalType": "struct FulfillmentComponent[][]",
+                "name": "offerFulfillments",
+                "type": "tuple[][]",
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "orderIndex",
+                        "type": "uint256",
+                    },
+                    {"internalType": "uint256", "name": "itemIndex", "type": "uint256"},
+                ],
+                "internalType": "struct FulfillmentComponent[][]",
+                "name": "considerationFulfillments",
+                "type": "tuple[][]",
+            },
+            {
+                "internalType": "bytes32",
+                "name": "fulfillerConduitKey",
+                "type": "bytes32",
+            },
+            {"internalType": "uint256", "name": "maximumFulfilled", "type": "uint256"},
+        ],
+        "name": "fulfillAvailableOrders",
+        "outputs": [
+            {"internalType": "bool[]", "name": "availableOrders", "type": "bool[]"},
+            {
+                "components": [
+                    {
+                        "components": [
+                            {
+                                "internalType": "enum ItemType",
+                                "name": "itemType",
+                                "type": "uint8",
+                            },
+                            {
                                 "internalType": "address",
-                                "name": "conduit",
+                                "name": "token",
                                 "type": "address",
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "identifier",
+                                "type": "uint256",
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "amount",
+                                "type": "uint256",
+                            },
+                            {
+                                "internalType": "address payable",
+                                "name": "recipient",
+                                "type": "address",
+                            },
+                        ],
+                        "internalType": "struct ReceivedItem",
+                        "name": "item",
+                        "type": "tuple",
+                    },
+                    {"internalType": "address", "name": "offerer", "type": "address"},
+                    {
+                        "internalType": "bytes32",
+                        "name": "conduitKey",
+                        "type": "bytes32",
+                    },
+                ],
+                "internalType": "struct Execution[]",
+                "name": "executions",
+                "type": "tuple[]",
+            },
+        ],
+        "stateMutability": "payable",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "considerationToken",
+                        "type": "address",
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "considerationIdentifier",
+                        "type": "uint256",
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "considerationAmount",
+                        "type": "uint256",
+                    },
+                    {
+                        "internalType": "address payable",
+                        "name": "offerer",
+                        "type": "address",
+                    },
+                    {"internalType": "address", "name": "zone", "type": "address"},
+                    {
+                        "internalType": "address",
+                        "name": "offerToken",
+                        "type": "address",
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "offerIdentifier",
+                        "type": "uint256",
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "offerAmount",
+                        "type": "uint256",
+                    },
+                    {
+                        "internalType": "enum BasicOrderType",
+                        "name": "basicOrderType",
+                        "type": "uint8",
+                    },
+                    {"internalType": "uint256", "name": "startTime", "type": "uint256"},
+                    {"internalType": "uint256", "name": "endTime", "type": "uint256"},
+                    {"internalType": "bytes32", "name": "zoneHash", "type": "bytes32"},
+                    {"internalType": "uint256", "name": "salt", "type": "uint256"},
+                    {
+                        "internalType": "bytes32",
+                        "name": "offererConduitKey",
+                        "type": "bytes32",
+                    },
+                    {
+                        "internalType": "bytes32",
+                        "name": "fulfillerConduitKey",
+                        "type": "bytes32",
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "totalOriginalAdditionalRecipients",
+                        "type": "uint256",
+                    },
+                    {
+                        "components": [
+                            {
+                                "internalType": "uint256",
+                                "name": "amount",
+                                "type": "uint256",
+                            },
+                            {
+                                "internalType": "address payable",
+                                "name": "recipient",
+                                "type": "address",
+                            },
+                        ],
+                        "internalType": "struct AdditionalRecipient[]",
+                        "name": "additionalRecipients",
+                        "type": "tuple[]",
+                    },
+                    {"internalType": "bytes", "name": "signature", "type": "bytes"},
+                ],
+                "internalType": "struct BasicOrderParameters",
+                "name": "parameters",
+                "type": "tuple",
+            }
+        ],
+        "name": "fulfillBasicOrder",
+        "outputs": [{"internalType": "bool", "name": "fulfilled", "type": "bool"}],
+        "stateMutability": "payable",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "components": [
+                            {
+                                "internalType": "address",
+                                "name": "offerer",
+                                "type": "address",
+                            },
+                            {
+                                "internalType": "address",
+                                "name": "zone",
+                                "type": "address",
+                            },
+                            {
+                                "components": [
+                                    {
+                                        "internalType": "enum ItemType",
+                                        "name": "itemType",
+                                        "type": "uint8",
+                                    },
+                                    {
+                                        "internalType": "address",
+                                        "name": "token",
+                                        "type": "address",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "identifierOrCriteria",
+                                        "type": "uint256",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "startAmount",
+                                        "type": "uint256",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "endAmount",
+                                        "type": "uint256",
+                                    },
+                                ],
+                                "internalType": "struct OfferItem[]",
+                                "name": "offer",
+                                "type": "tuple[]",
+                            },
+                            {
+                                "components": [
+                                    {
+                                        "internalType": "enum ItemType",
+                                        "name": "itemType",
+                                        "type": "uint8",
+                                    },
+                                    {
+                                        "internalType": "address",
+                                        "name": "token",
+                                        "type": "address",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "identifierOrCriteria",
+                                        "type": "uint256",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "startAmount",
+                                        "type": "uint256",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "endAmount",
+                                        "type": "uint256",
+                                    },
+                                    {
+                                        "internalType": "address payable",
+                                        "name": "recipient",
+                                        "type": "address",
+                                    },
+                                ],
+                                "internalType": "struct ConsiderationItem[]",
+                                "name": "consideration",
+                                "type": "tuple[]",
+                            },
+                            {
+                                "internalType": "enum OrderType",
+                                "name": "orderType",
+                                "type": "uint8",
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "startTime",
+                                "type": "uint256",
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "endTime",
+                                "type": "uint256",
+                            },
+                            {
+                                "internalType": "bytes32",
+                                "name": "zoneHash",
+                                "type": "bytes32",
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "salt",
+                                "type": "uint256",
+                            },
+                            {
+                                "internalType": "bytes32",
+                                "name": "conduitKey",
+                                "type": "bytes32",
                             },
                             {
                                 "internalType": "uint256",
@@ -1049,17 +1253,21 @@ CONSIDERATION_ABI = [
                 "name": "order",
                 "type": "tuple",
             },
-            {"internalType": "address", "name": "fulfillerConduit", "type": "address"},
+            {
+                "internalType": "bytes32",
+                "name": "fulfillerConduitKey",
+                "type": "bytes32",
+            },
         ],
         "name": "fulfillOrder",
-        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "outputs": [{"internalType": "bool", "name": "fulfilled", "type": "bool"}],
         "stateMutability": "payable",
         "type": "function",
     },
     {
         "inputs": [{"internalType": "address", "name": "offerer", "type": "address"}],
-        "name": "getNonce",
-        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "name": "getCounter",
+        "outputs": [{"internalType": "uint256", "name": "counter", "type": "uint256"}],
         "stateMutability": "view",
         "type": "function",
     },
@@ -1147,8 +1355,12 @@ CONSIDERATION_ABI = [
                     {"internalType": "uint256", "name": "endTime", "type": "uint256"},
                     {"internalType": "bytes32", "name": "zoneHash", "type": "bytes32"},
                     {"internalType": "uint256", "name": "salt", "type": "uint256"},
-                    {"internalType": "address", "name": "conduit", "type": "address"},
-                    {"internalType": "uint256", "name": "nonce", "type": "uint256"},
+                    {
+                        "internalType": "bytes32",
+                        "name": "conduitKey",
+                        "type": "bytes32",
+                    },
+                    {"internalType": "uint256", "name": "counter", "type": "uint256"},
                 ],
                 "internalType": "struct OrderComponents",
                 "name": "order",
@@ -1156,7 +1368,9 @@ CONSIDERATION_ABI = [
             }
         ],
         "name": "getOrderHash",
-        "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+        "outputs": [
+            {"internalType": "bytes32", "name": "orderHash", "type": "bytes32"}
+        ],
         "stateMutability": "view",
         "type": "function",
     },
@@ -1174,9 +1388,22 @@ CONSIDERATION_ABI = [
     },
     {
         "inputs": [],
-        "name": "incrementNonce",
-        "outputs": [{"internalType": "uint256", "name": "newNonce", "type": "uint256"}],
+        "name": "incrementCounter",
+        "outputs": [
+            {"internalType": "uint256", "name": "newCounter", "type": "uint256"}
+        ],
         "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [],
+        "name": "information",
+        "outputs": [
+            {"internalType": "string", "name": "version", "type": "string"},
+            {"internalType": "bytes32", "name": "domainSeparator", "type": "bytes32"},
+            {"internalType": "address", "name": "conduitController", "type": "address"},
+        ],
+        "stateMutability": "view",
         "type": "function",
     },
     {
@@ -1290,9 +1517,9 @@ CONSIDERATION_ABI = [
                                 "type": "uint256",
                             },
                             {
-                                "internalType": "address",
-                                "name": "conduit",
-                                "type": "address",
+                                "internalType": "bytes32",
+                                "name": "conduitKey",
+                                "type": "bytes32",
                             },
                             {
                                 "internalType": "uint256",
@@ -1420,33 +1647,16 @@ CONSIDERATION_ABI = [
                         "type": "tuple",
                     },
                     {"internalType": "address", "name": "offerer", "type": "address"},
-                    {"internalType": "address", "name": "conduit", "type": "address"},
+                    {
+                        "internalType": "bytes32",
+                        "name": "conduitKey",
+                        "type": "bytes32",
+                    },
                 ],
                 "internalType": "struct Execution[]",
-                "name": "standardExecutions",
+                "name": "executions",
                 "type": "tuple[]",
-            },
-            {
-                "components": [
-                    {"internalType": "address", "name": "token", "type": "address"},
-                    {"internalType": "address", "name": "from", "type": "address"},
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {
-                        "internalType": "uint256[]",
-                        "name": "tokenIds",
-                        "type": "uint256[]",
-                    },
-                    {
-                        "internalType": "uint256[]",
-                        "name": "amounts",
-                        "type": "uint256[]",
-                    },
-                    {"internalType": "address", "name": "conduit", "type": "address"},
-                ],
-                "internalType": "struct BatchExecution[]",
-                "name": "batchExecutions",
-                "type": "tuple[]",
-            },
+            }
         ],
         "stateMutability": "payable",
         "type": "function",
@@ -1562,9 +1772,9 @@ CONSIDERATION_ABI = [
                                 "type": "uint256",
                             },
                             {
-                                "internalType": "address",
-                                "name": "conduit",
-                                "type": "address",
+                                "internalType": "bytes32",
+                                "name": "conduitKey",
+                                "type": "bytes32",
                             },
                             {
                                 "internalType": "uint256",
@@ -1661,33 +1871,16 @@ CONSIDERATION_ABI = [
                         "type": "tuple",
                     },
                     {"internalType": "address", "name": "offerer", "type": "address"},
-                    {"internalType": "address", "name": "conduit", "type": "address"},
+                    {
+                        "internalType": "bytes32",
+                        "name": "conduitKey",
+                        "type": "bytes32",
+                    },
                 ],
                 "internalType": "struct Execution[]",
-                "name": "standardExecutions",
+                "name": "executions",
                 "type": "tuple[]",
-            },
-            {
-                "components": [
-                    {"internalType": "address", "name": "token", "type": "address"},
-                    {"internalType": "address", "name": "from", "type": "address"},
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {
-                        "internalType": "uint256[]",
-                        "name": "tokenIds",
-                        "type": "uint256[]",
-                    },
-                    {
-                        "internalType": "uint256[]",
-                        "name": "amounts",
-                        "type": "uint256[]",
-                    },
-                    {"internalType": "address", "name": "conduit", "type": "address"},
-                ],
-                "internalType": "struct BatchExecution[]",
-                "name": "batchExecutions",
-                "type": "tuple[]",
-            },
+            }
         ],
         "stateMutability": "payable",
         "type": "function",
@@ -1695,7 +1888,9 @@ CONSIDERATION_ABI = [
     {
         "inputs": [],
         "name": "name",
-        "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+        "outputs": [
+            {"internalType": "string", "name": "contractName", "type": "string"}
+        ],
         "stateMutability": "pure",
         "type": "function",
     },
@@ -1810,9 +2005,9 @@ CONSIDERATION_ABI = [
                                 "type": "uint256",
                             },
                             {
-                                "internalType": "address",
-                                "name": "conduit",
-                                "type": "address",
+                                "internalType": "bytes32",
+                                "name": "conduitKey",
+                                "type": "bytes32",
                             },
                             {
                                 "internalType": "uint256",
@@ -1832,15 +2027,8 @@ CONSIDERATION_ABI = [
             }
         ],
         "name": "validate",
-        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "outputs": [{"internalType": "bool", "name": "validated", "type": "bool"}],
         "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "inputs": [],
-        "name": "version",
-        "outputs": [{"internalType": "string", "name": "", "type": "string"}],
-        "stateMutability": "pure",
         "type": "function",
     },
 ]

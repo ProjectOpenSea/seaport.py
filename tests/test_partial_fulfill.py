@@ -1,8 +1,8 @@
 from web3 import Web3
 
-from consideration.consideration import Consideration
-from consideration.constants import ItemType, OrderType
-from consideration.types import (
+from seaport.seaport import Seaport
+from seaport.constants import ItemType, OrderType
+from seaport.types import (
     ConsiderationCurrencyItem,
     ConsiderationErc1155Item,
     OfferCurrencyItem,
@@ -14,12 +14,10 @@ erc1155_amount = 10
 erc1155_amount2 = 5
 
 
-def test_partial_erc1155_buy_now(
-    consideration: Consideration, erc1155, offerer, zone, fulfiller
-):
+def test_partial_erc1155_buy_now(seaport: Seaport, erc1155, offerer, zone, fulfiller):
     erc1155.mint(offerer, nft_id, erc1155_amount)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc1155Item(
@@ -41,7 +39,7 @@ def test_partial_erc1155_buy_now(
 
     assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
     )
 
@@ -53,7 +51,7 @@ def test_partial_erc1155_buy_now(
 
 
 def test_partial_erc1155_buy_now_with_erc20(
-    consideration: Consideration,
+    seaport: Seaport,
     erc1155,
     erc20,
     second_erc1155,
@@ -63,7 +61,7 @@ def test_partial_erc1155_buy_now_with_erc20(
 ):
     erc1155.mint(offerer, nft_id, erc1155_amount)
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc1155Item(
@@ -87,7 +85,7 @@ def test_partial_erc1155_buy_now_with_erc20(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
     )
 
@@ -100,7 +98,7 @@ def test_partial_erc1155_buy_now_with_erc20(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -110,7 +108,7 @@ def test_partial_erc1155_buy_now_with_erc20(
 
 
 def test_partial_erc1155_accept_offer(
-    consideration: Consideration,
+    seaport: Seaport,
     erc1155,
     second_erc1155,
     erc20,
@@ -121,7 +119,7 @@ def test_partial_erc1155_accept_offer(
     erc1155.mint(fulfiller, nft_id, erc1155_amount)
     erc20.mint(offerer, Web3.toWei(11, "ether"))
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferCurrencyItem(
@@ -147,7 +145,7 @@ def test_partial_erc1155_accept_offer(
 
     order = use_case.execute_all_actions()
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
     )
 
@@ -165,7 +163,7 @@ def test_partial_erc1155_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": erc1155_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc1155_approval_action.transaction_methods.transact()
@@ -176,7 +174,7 @@ def test_partial_erc1155_accept_offer(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": erc20_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc20_approval_action.transaction_methods.transact()
@@ -187,12 +185,12 @@ def test_partial_erc1155_accept_offer(
 
 
 def test_partial_multiple_erc1155_buy_now(
-    consideration: Consideration, erc1155, second_erc1155, offerer, zone, fulfiller
+    seaport: Seaport, erc1155, second_erc1155, offerer, zone, fulfiller
 ):
     erc1155.mint(offerer, nft_id, erc1155_amount)
     second_erc1155.mint(offerer, nft_id, erc1155_amount2)
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc1155Item(
@@ -217,7 +215,7 @@ def test_partial_multiple_erc1155_buy_now(
 
     assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
     )
 
@@ -230,7 +228,7 @@ def test_partial_multiple_erc1155_buy_now(
 
 
 def test_partial_erc1155_multiple_buy_now_with_erc20(
-    consideration: Consideration,
+    seaport: Seaport,
     erc1155,
     erc20,
     second_erc1155,
@@ -241,7 +239,7 @@ def test_partial_erc1155_multiple_buy_now_with_erc20(
     erc1155.mint(offerer, nft_id, erc1155_amount)
     second_erc1155.mint(offerer, nft_id, erc1155_amount2)
     erc20.mint(fulfiller, Web3.toWei(11, "ether"))
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferErc1155Item(
@@ -270,7 +268,7 @@ def test_partial_erc1155_multiple_buy_now_with_erc20(
 
     assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
     )
 
@@ -283,7 +281,7 @@ def test_partial_erc1155_multiple_buy_now_with_erc20(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     approval_action.transaction_methods.transact()
@@ -294,7 +292,7 @@ def test_partial_erc1155_multiple_buy_now_with_erc20(
 
 
 def test_partial_erc1155_multiple_accept_offer(
-    consideration: Consideration,
+    seaport: Seaport,
     erc1155,
     second_erc1155,
     erc20,
@@ -306,7 +304,7 @@ def test_partial_erc1155_multiple_accept_offer(
     second_erc1155.mint(fulfiller, nft_id, erc1155_amount2)
     erc20.mint(offerer, Web3.toWei(11, "ether"))
 
-    use_case = consideration.create_order(
+    use_case = seaport.create_order(
         account_address=offerer.address,
         offer=[
             OfferCurrencyItem(
@@ -340,7 +338,7 @@ def test_partial_erc1155_multiple_accept_offer(
 
     assert order.parameters.orderType == OrderType.PARTIAL_OPEN
 
-    fulfill_order_use_case = consideration.fulfill_order(
+    fulfill_order_use_case = seaport.fulfill_order(
         order=order, account_address=fulfiller.address, units_to_fill=2
     )
 
@@ -359,7 +357,7 @@ def test_partial_erc1155_multiple_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": erc1155_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc1155_approval_action.transaction_methods.transact()
@@ -370,7 +368,7 @@ def test_partial_erc1155_multiple_accept_offer(
         "identifier_or_criteria": nft_id,
         "item_type": ItemType.ERC1155.value,
         "transaction_methods": second_erc1155_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     second_erc1155_approval_action.transaction_methods.transact()
@@ -381,7 +379,7 @@ def test_partial_erc1155_multiple_accept_offer(
         "identifier_or_criteria": 0,
         "item_type": ItemType.ERC20.value,
         "transaction_methods": erc20_approval_action.transaction_methods,
-        "operator": consideration.contract.address,
+        "operator": seaport.contract.address,
     }
 
     erc20_approval_action.transaction_methods.transact()

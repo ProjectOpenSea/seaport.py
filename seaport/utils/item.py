@@ -4,8 +4,8 @@ from typing import Literal, Optional, Sequence, Union
 
 from pydantic import BaseModel
 
-from consideration.constants import ItemType, Side
-from consideration.types import (
+from seaport.constants import ItemType, Side
+from seaport.types import (
     ConsiderationItem,
     CriteriaResolver,
     InputCriteria,
@@ -13,8 +13,8 @@ from consideration.types import (
     OfferItem,
     Order,
 )
-from consideration.utils.gcd import find_gcd
-from consideration.utils.merkletree import MerkleTree
+from seaport.utils.gcd import find_gcd
+from seaport.utils.merkletree import MerkleTree
 
 
 def is_currency_item(item_type: ItemType):

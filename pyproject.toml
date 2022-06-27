@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "consideration.py"
-version = "0.1.0"
+name = "seaport.py"
+version = "1.0.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["OpenSea Developers"]
 
 [tool.poetry.dependencies]
 python = "3.9.12"
