@@ -6,14 +6,14 @@ from web3.constants import ADDRESS_ZERO
 
 from seaport.constants import ONE_HUNDRED_PERCENT_BP, ItemType
 from seaport.types import (
-    OfferErc721Item,
-    OfferErc1155Item,
     ConsiderationItem,
     CreateInputItem,
     Fee,
     Item,
     OfferCurrencyItem,
+    OfferErc721Item,
     OfferErc721ItemWithCriteria,
+    OfferErc1155Item,
     OfferErc1155ItemWithCriteria,
     OfferItem,
     Order,

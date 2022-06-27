@@ -2,12 +2,12 @@ import pytest
 from brownie.network.account import Accounts, _PrivateKeyAccount
 from web3 import Web3
 
-from seaport.seaport import Seaport
 from seaport.constants import ItemType
+from seaport.seaport import Seaport
 from seaport.types import (
-    OfferErc721Item,
     ConsiderationCurrencyItem,
     FulfillOrderDetails,
+    OfferErc721Item,
 )
 
 

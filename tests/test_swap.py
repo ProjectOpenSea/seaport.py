@@ -1,7 +1,7 @@
 from web3 import Web3
 
-from seaport.seaport import Seaport
 from seaport.constants import ItemType
+from seaport.seaport import Seaport
 from seaport.types import (
     ConsiderationCurrencyItem,
     ConsiderationErc721Item,

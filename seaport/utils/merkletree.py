@@ -20,12 +20,16 @@ class MerkleTree:
             if index == 0 or sorted_identifiers[index - 1] != identifier
         ]
 
-        self.element_to_index = {element: index for index, element in enumerate(elements)}
+        self.element_to_index = {
+            element: index for index, element in enumerate(elements)
+        }
 
         self.elements = elements
 
     def _hash_identifier(self, identifier: int) -> bytes:
-        return Web3.solidityKeccak(abi_types=["bytes"], values=[bytes.fromhex(hex(identifier)[2:].zfill(64))])
+        return Web3.solidityKeccak(
+            abi_types=["bytes"], values=[bytes.fromhex(hex(identifier)[2:].zfill(64))]
+        )
 
     def get_identifiers(self) -> list[int]:
         return self.identifiers
@@ -51,7 +55,11 @@ class MerkleTree:
         index_of_element = self.element_to_index[element]
 
         for layer in layers:
-            pair_index = index_of_element + 1 if index_of_element % 2 == 0 else index_of_element - 1
+            pair_index = (
+                index_of_element + 1
+                if index_of_element % 2 == 0
+                else index_of_element - 1
+            )
             pair_element = layer[pair_index] if pair_index < len(layer) else None
 
             if pair_element:
@@ -92,4 +100,6 @@ class MerkleTree:
 
         sorted_values = sorted([first, second])
 
-        return Web3.solidityKeccak(abi_types=["bytes"], values=[sorted_values[0] + sorted_values[1]])
+        return Web3.solidityKeccak(
+            abi_types=["bytes"], values=[sorted_values[0] + sorted_values[1]]
+        )

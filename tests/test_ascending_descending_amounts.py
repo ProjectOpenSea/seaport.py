@@ -11,9 +11,7 @@ seconds_in_week = 604800
 gas_cost_buffer = Web3.toWei(0.001, "ether")
 
 
-def test_erc721_ascending_auction(
-    seaport: Seaport, erc721, offerer, zone, fulfiller
-):
+def test_erc721_ascending_auction(seaport: Seaport, erc721, offerer, zone, fulfiller):
     erc721.mint(offerer, nft_id)
     start_time = seaport.web3.eth.get_block("latest").get("timestamp", 0)
     end_time = start_time + seconds_in_week
@@ -138,9 +136,7 @@ def test_erc721_for_erc20_ascending_auction(
     assert erc20.balanceOf(zone) == Web3.toWei(1.5, "ether")
 
 
-def test_erc721_descending_auction(
-    seaport: Seaport, erc721, offerer, zone, fulfiller
-):
+def test_erc721_descending_auction(seaport: Seaport, erc721, offerer, zone, fulfiller):
     erc721.mint(offerer, nft_id)
     start_time = seaport.web3.eth.get_block("latest").get("timestamp", 0)
     end_time = start_time + seconds_in_week
@@ -267,9 +263,7 @@ def test_erc721_for_erc20_descending_auction(
     assert erc20.balanceOf(zone) == Web3.toWei(1.5, "ether")
 
 
-def test_erc1155_ascending_auction(
-    seaport: Seaport, erc1155, offerer, zone, fulfiller
-):
+def test_erc1155_ascending_auction(seaport: Seaport, erc1155, offerer, zone, fulfiller):
     erc1155.mint(offerer, nft_id, erc1155_amount)
     start_time = seaport.web3.eth.get_block("latest").get("timestamp", 0)
     end_time = start_time + seconds_in_week
