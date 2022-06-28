@@ -20,7 +20,7 @@ pip install poetry==1.1.13
 
 4. Run `poetry install`
 
-5. (Optional) If running VSCode, set the interpreter to be `.venv/bin/python`
+5. (Optional) If running VSCode, set the interpreter to be the `seaport` virtualenv.
 
 ## Testing
 
